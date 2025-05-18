@@ -1,0 +1,5 @@
+DSTerminal License Agreement
+----------------------------
+You are free to use, distribute, and modify DSTerminal for personal and educational purposes.
+
+Unauthorized commercial use is prohibited without permission from Stark Expo Tech Exchange.
