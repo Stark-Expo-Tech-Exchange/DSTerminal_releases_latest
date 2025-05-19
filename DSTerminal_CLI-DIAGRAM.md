@@ -1,5 +1,5 @@
 
-📐 Defensive Security Terminal – Modular Architecture
+📐 Defensive Security Terminal – Modular Architecture >>Arquitectura del Terminal de Seguridad
 
 +-----------------------------------------------------------+
 |                    DEFENSIVE SECURITY TERMINAL            |
