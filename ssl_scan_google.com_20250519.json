@@ -3,6 +3,8 @@
   "scan_date": "2025-05-19T23:29:54.099938",
   "protocol": "TLSv1.3",
   "cipher": "TLS_AES_256_GCM_SHA384",
-  "certificate": {
-    "subject": {
+  "certificate": {},
+    "subject": {}
+
+    }
       
