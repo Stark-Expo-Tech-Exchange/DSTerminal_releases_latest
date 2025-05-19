@@ -35,12 +35,21 @@ DSTerminal is an all-in-one CLI (Command Line Interface) platform designed for:
     Network Monitoring
 
 # 2. Key Components
-**Module**	               **Functionality**	                  **Example Commands**
-System Scanner	           Malware detection, process analysis	        scan, memdump
-Network Suite	           Port scanning, traffic monitoring	        netmon, portsweep
-Forensics Kit	           File hashing, memory forensics	            hashfile, stegcheck
-Hardening Tools	           OS security configuration	                harden, macspoof
-Threat Intel	           VirusTotal integration, CVE checks	        vtscan, exploitcheck
+    	        
++--------------------------------------------------------------------------------------+
+|                                                                                      |
+| **Module**        |  **Functionality**                        | **Example Commands** |
+|---------------------------------------------|-----------------|----------------------|
+| System Scanner    |  Malware detection, process analysis      |  scan, memdump       |
+| Network Suite     |  Port scanning, traffic monitoring        |  netmon, portsweep   |
+| Forensics Kit     |  File hashing, memory forensics           |  hashfile, stegcheck |
+| Port Scanner      |  OS security configuration |              |  vtscan, exploitcheck|
+|---------------------------|------------------|----------------|----------------------|
+| Hardening Tools   |  VirusTotal integration, CVE checks       |                      |
+|                                                               |                      |
+|---------------------------|------------------|----------------|----------------------|
+ 
+
 
 
 # 3. Technical Architecture
