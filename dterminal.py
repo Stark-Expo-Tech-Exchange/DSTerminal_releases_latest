@@ -1,4 +1,7 @@
 import os
+import shutil
+import requests
+from threading import Thread
 import sys
 import platform
 import hashlib
@@ -21,7 +24,7 @@ from prompt_toolkit.formatted_text import HTML
 
 # Configuration
 CONFIG = {
-    'VT_API_KEY': 'YOUR_VIRUSTOTAL_API_KEY',
+    'VT_API_KEY': '957166d424812a397e328022b84594a8c02757814f6c04518dce7e81179b4b79',
     'UPDATE_URL': 'https://api.github.com/repos/starkexpotech/DSTerminal/releases/latest',
     'LOG_FILE': 'secure_audit.log',
     'ENCRYPT_KEY': Fernet.generate_key().decode(),
@@ -143,21 +146,160 @@ class SecurityTerminal:
         for cve, desc in vulns.items():
             print(f"{cve}: {desc} - {'[!] VULNERABLE' if random.random() > 0.7 else '[+] Secure'}")
 
-    def spoof_mac(self, interface="eth0"):
-        if self.is_admin():
-            new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
-                random.randint(0, 255),
-                random.randint(0, 255),
-                random.randint(0, 255),
-                random.randint(0, 255),
-                random.randint(0, 255)
-            )
-            os.system(f"sudo ifconfig {interface} down")
-            os.system(f"sudo ifconfig {interface} hw ether {new_mac}")
-            os.system(f"sudo ifconfig {interface} up")
-            print(f"[+] MAC spoofed to {new_mac}")
-        else:
+    # def spoof_mac(self, interface="eth0"):
+    #     if self.is_admin():
+    #         new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
+    #             random.randint(0, 255),
+    #             random.randint(0, 255),
+    #             random.randint(0, 255),
+    #             random.randint(0, 255),
+    #             random.randint(0, 255)
+    #         )
+    #         os.system(f"sudo ifconfig {interface} down")
+    #         os.system(f"sudo ifconfig {interface} hw ether {new_mac}")
+    #         os.system(f"sudo ifconfig {interface} up")
+    #         print(f"[+] MAC spoofed to {new_mac}")
+    #     else:
+    #         print("[!] Requires admin privileges")
+    def spoof_mac(self, interface=None):
+        """Enhanced MAC spoofing with detailed debugging"""
+        print("\n[DEBUG] Starting macspoof command")  # Debug line 1
+    
+    # 1. Admin check
+        if not self.is_admin():
             print("[!] Requires admin privileges")
+            print("[DEBUG] Failed admin check")
+            return
+    
+        print("[DEBUG] Passed admin check")  # Debug line 2
+
+    # 2. Interface detection
+        def get_active_interface():
+            print("[DEBUG] Starting interface detection")  # Debug line 3
+            try:
+                if platform.system() in ['Linux', 'Darwin']:
+                    print("[DEBUG] Trying Linux/Mac detection")
+                    route = subprocess.check_output("ip route show default", 
+                                                shell=True, 
+                                                stderr=subprocess.PIPE).decode()
+                    print(f"[DEBUG] Route output: {route.strip()}")  # Debug line 4
+                    if len(route.split()) >= 5:
+                        return route.split()[4]
+                    return None
+                
+                elif platform.system() == 'Windows':
+                    print("[DEBUG] Trying Windows detection")
+                    output = subprocess.check_output("getmac /v /fo csv", 
+                                                shell=True, 
+                                                stderr=subprocess.PIPE).decode()
+                    print(f"[DEBUG] Getmac output: {output.strip()}")  # Debug line 5
+                    lines = [l for l in output.split('\n') if l.strip()]
+                    if len(lines) > 1:
+                        return lines[1].split(',')[0].strip('"')
+                    return None
+                
+            except subprocess.CalledProcessError as e:
+                print(f"[DEBUG] Command failed: {e.stderr.decode().strip()}")
+                return None
+            except Exception as e:
+                print(f"[DEBUG] Detection error: {str(e)}")
+                return None
+
+    # 3. Get interface
+        if not interface:
+            print("[DEBUG] Attempting auto-detection")  # Debug line 6
+            interface = get_active_interface()
+            if not interface:
+                print("[!] Could not detect active interface")
+                print("[DEBUG] Auto-detection failed")
+                return
+    
+        print(f"[DEBUG] Using interface: {interface}")  # Debug line 7
+
+    # 4. MAC generation
+        new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
+            random.randint(0x00, 0x7f),
+            random.randint(0x00, 0xff),
+            random.randint(0x00, 0xff),
+            random.randint(0x00, 0xff),
+            random.randint(0x00, 0xff)
+        )
+        print(f"[DEBUG] Generated MAC: {new_mac}")  # Debug line 8
+
+    # 5. Execution
+        try:
+            print(f"\n[+] Spoofing {interface} to {new_mac}")
+        
+            commands = []
+            if platform.system() in ['Linux', 'Darwin']:
+                commands = [
+                    f"ifconfig {interface} down",
+                    f"ifconfig {interface} hw ether {new_mac}",
+                    f"ifconfig {interface} up",
+                    f"dhclient -r {interface}",
+                    f"dhclient {interface}"
+                ]
+            elif platform.system() == 'Windows':
+                interface_key = interface.split('_')[-1]
+                commands = [
+                    f"netsh interface set interface \"{interface}\" admin=disable",
+                    f"reg add HKLM\SYSTEM\CurrentControlSet\Control\Class"
+                    f"\\{{4D36E972-E325-11CE-BFC1-08002BE10318}}"
+                    f"\\{interface_key} /v NetworkAddress /d {new_mac} /f",
+                    f"netsh interface set interface \"{interface}\" admin=enable"
+                ]
+        
+            print("[DEBUG] Commands to execute:")  # Debug line 9
+            for i, cmd in enumerate(commands, 1):
+                print(f"[DEBUG] {i}. {cmd}")
+            
+                result = subprocess.run(cmd, 
+                                    shell=True, 
+                                    capture_output=True, 
+                                    text=True)
+                if result.returncode != 0:
+                    print(f"[DEBUG] Command failed: {result.stderr.strip()}")
+            
+                time.sleep(0.5)
+        
+            print("[+] MAC address successfully changed")
+        
+        except Exception as e:
+            print(f"[!] MAC spoofing failed: {str(e)}")
+    
+    # 6. Verification
+        self._verify_mac_change(interface, new_mac)
+
+    def _verify_mac_change(self, interface, expected_mac):
+        """Enhanced verification with debugging"""
+        print("[DEBUG] Starting verification")  # Debug line 10
+        try:
+            if platform.system() in ['Linux', 'Darwin']:
+                result = subprocess.run(f"ifconfig {interface}",
+                                    shell=True,
+                                    capture_output=True,
+                                    text=True)
+                print(f"[DEBUG] ifconfig output: {result.stdout[:200]}...")  # Debug line 11
+                if expected_mac.lower() in result.stdout.lower():
+                    print("[✓] MAC verification successful")
+                else:
+                    print("[!] MAC verification failed")
+                
+            elif platform.system() == 'Windows':
+                result = subprocess.run("getmac /v /fo csv",
+                                    shell=True,
+                                    capture_output=True,
+                                    text=True)
+                print(f"[DEBUG] getmac output: {result.stdout.strip()}")  # Debug line 12
+                if expected_mac.lower() in result.stdout.lower():
+                    print("[✓] MAC verification successful")
+                else:
+                    print("[!] MAC verification failed")
+    
+        except Exception as e:
+            print(f"[DEBUG] Verification error: {str(e)}")
+
+    # ======end of macspoof
 
     def sql_injection_scan(self, url):
         if "http" in url:
@@ -477,69 +619,350 @@ class SecurityTerminal:
         except Exception as e:
             return f"Update check failed: {e}"
 
+    # def vt_scan_menu(self):
+    #     """VirusTotal file scanning interface"""
+    #     print("\n[VirusTotal Scanner]")
+    #     print("1. Hash lookup")
+    #     print("2. File scan")
+    #     choice = input("Select option: ")
+        
+    #     if choice == "1":
+    #         file_hash = input("Enter file hash: ")
+    #         self.vt_hash_lookup(file_hash)
+    #     elif choice == "2":
+    #         file_path = input("File path to scan: ")
+    #         self.vt_file_scan(file_path)
+    #     else:
+    #         print("[!] Invalid choice")
+
+    # def vt_hash_lookup(self, file_hash):
+    #     """Check file hash against VirusTotal"""
+    #     if not CONFIG['VT_API_KEY'] or CONFIG['VT_API_KEY'] == 'YOUR_VIRUSTOTAL_API_KEY':
+    #         print("[!] Configure your VirusTotal API key first")
+    #         return
+
+    #     try:
+    #         url = f"https://www.virustotal.com/api/v3/files/{file_hash}"
+    #         headers = {"x-apikey": CONFIG['VT_API_KEY']}
+    #         response = requests.get(url, headers=headers)
+            
+    #         if response.status_code == 200:
+    #             result = response.json()
+    #             stats = result['data']['attributes']['last_analysis_stats']
+    #             print(f"\n[+] Detection: {stats['malicious']}/{sum(stats.values())}")
+    #             print(f"First submitted: {result['data']['attributes']['first_submission_date']}")
+    #         else:
+    #             print("[!] Hash not found in VirusTotal")
+    #     except Exception as e:
+    #         print(f"[!] Error: {e}")
+
+    # def vt_file_scan(self, file_path):
+    #     """Upload file to VirusTotal"""
+    #     if not os.path.exists(file_path):
+    #         print("[!] File not found")
+    #         return
+
+    #     if not CONFIG['VT_API_KEY'] or CONFIG['VT_API_KEY'] == 'YOUR_VIRUSTOTAL_API_KEY':
+    #         print("[!] Configure your VirusTotal API key first")
+    #         return
+
+    #     try:
+    #         url = "https://www.virustotal.com/api/v3/files"
+    #         headers = {"x-apikey": CONFIG['VT_API_KEY']}
+            
+    #         with open(file_path, 'rb') as f:
+    #             files = {'file': (os.path.basename(file_path), f)}
+    #             response = requests.post(url, headers=headers, files=files)
+            
+    #         if response.status_code == 200:
+    #             result = response.json()
+    #             print(f"\n[+] Scan ID: {result['data']['id']}")
+    #             print("Check results later at: https://www.virustotal.com")
+    #         else:
+    #             print("[!] Upload failed")
+    #     except Exception as e:
+    #         print(f"[!] Error: {e}")
+
+    #         # =========Special code for vtscan below
+    
     def vt_scan_menu(self):
-        """VirusTotal file scanning interface"""
+        """Enhanced VirusTotal scanning interface"""
         print("\n[VirusTotal Scanner]")
         print("1. Hash lookup")
         print("2. File scan")
+        print("3. Bulk scan folder")
+        print("4. Check previous scan")
         choice = input("Select option: ")
         
         if choice == "1":
-            file_hash = input("Enter file hash: ")
+            file_hash = input("Enter file hash (MD5/SHA1/SHA256): ").strip()
             self.vt_hash_lookup(file_hash)
         elif choice == "2":
-            file_path = input("File path to scan: ")
+            file_path = input("File path to scan: ").strip()
             self.vt_file_scan(file_path)
+        elif choice == "3":
+            folder_path = input("Folder path to scan: ").strip()
+            max_files = input("Max files to scan (default 10): ").strip() or 10
+            self.vt_bulk_scan(folder_path, int(max_files))
+        elif choice == "4":
+            scan_id = input("Enter previous scan ID: ").strip()
+            self.check_scan_result(scan_id)
         else:
             print("[!] Invalid choice")
 
     def vt_hash_lookup(self, file_hash):
-        """Check file hash against VirusTotal"""
-        if not CONFIG['VT_API_KEY'] or CONFIG['VT_API_KEY'] == 'YOUR_VIRUSTOTAL_API_KEY':
-            print("[!] Configure your VirusTotal API key first")
+        """Enhanced hash lookup with detailed results"""
+        if not self._validate_vt_api():
             return
 
         try:
             url = f"https://www.virustotal.com/api/v3/files/{file_hash}"
             headers = {"x-apikey": CONFIG['VT_API_KEY']}
+            
+            print(f"\n[+] Checking hash: {file_hash}...")
             response = requests.get(url, headers=headers)
             
             if response.status_code == 200:
                 result = response.json()
-                stats = result['data']['attributes']['last_analysis_stats']
-                print(f"\n[+] Detection: {stats['malicious']}/{sum(stats.values())}")
-                print(f"First submitted: {result['data']['attributes']['first_submission_date']}")
+                attrs = result['data']['attributes']
+                
+                # Detailed report
+                print(f"\n╔{'═'*60}╗")
+                print(f"║ {'VirusTotal Report':^58} ║")
+                print(f"╠{'═'*60}╣")
+                print(f"║ {'Detection:':<15} {attrs['last_analysis_stats']['malicious']}/{sum(attrs['last_analysis_stats'].values())} ║")
+                print(f"║ {'First Seen:':<15} {attrs['first_submission_date']} ║")
+                print(f"║ {'File Type:':<15} {attrs.get('type_tag', 'Unknown')} ║")
+                
+                # Top detections
+                malicious = [k for k,v in attrs['last_analysis_results'].items() if v['category'] == 'malicious']
+                if malicious:
+                    print(f"╠{'═'*60}╣")
+                    print(f"║ {'Top Detections:':<58} ║")
+                    for engine in malicious[:3]:
+                        print(f"║ - {engine:<55} ║")
+                print(f"╚{'═'*60}╝")
+                
+                # Auto-quarantine recommendation
+                if attrs['last_analysis_stats']['malicious'] > 0:
+                    print("\n[!] MALICIOUS FILE DETECTED!")
+                    if input("Quarantine file? (y/N): ").lower() == 'y':
+                        self.quarantine_file(None, file_hash=file_hash)
             else:
                 print("[!] Hash not found in VirusTotal")
         except Exception as e:
             print(f"[!] Error: {e}")
+  
 
     def vt_file_scan(self, file_path):
-        """Upload file to VirusTotal"""
+        """Upload file to VirusTotal with debug output"""
+        print(f"\n[DEBUG] Starting scan for: {file_path}")  # Debug line
+    
         if not os.path.exists(file_path):
-            print("[!] File not found")
+            print("[!] Error: File not found")
+            print(f"[DEBUG] Resolved path: {os.path.abspath(file_path)}")  # Debug line
             return
 
-        if not CONFIG['VT_API_KEY'] or CONFIG['VT_API_KEY'] == 'YOUR_VIRUSTOTAL_API_KEY':
-            print("[!] Configure your VirusTotal API key first")
+            print("[DEBUG] File exists check passed")  # Debug line
+    
+        if not self._validate_vt_api():
+            print("[!] Error: VirusTotal API validation failed")
+            print(f"[DEBUG] API Key: {'Set' if CONFIG.get('VT_API_KEY') else 'Not Set'}")  # Debug line
             return
 
+        print("[DEBUG] API validation passed")  # Debug line
+    
+        MAX_SIZE = 32 * 1024 * 1024  # 32MB
+        file_size = os.path.getsize(file_path)
+        print(f"[DEBUG] File size: {file_size} bytes")  # Debug line
+
+        if file_size > MAX_SIZE:
+            print(f"[!] Error: File too large ({file_size/1024/1024:.2f}MB > 32MB)")
+            return
+
+        print("[DEBUG] Size check passed")  # Debug line
+    
         try:
-            url = "https://www.virustotal.com/api/v3/files"
-            headers = {"x-apikey": CONFIG['VT_API_KEY']}
-            
+            print(f"\n[+] Analyzing {os.path.basename(file_path)}...")
+            print(f"  ↳ Size: {file_size/1024:.2f}KB")
+            print("  ↳ Uploading...", end='', flush=True)
+        
             with open(file_path, 'rb') as f:
                 files = {'file': (os.path.basename(file_path), f)}
-                response = requests.post(url, headers=headers, files=files)
-            
+                headers = {"x-apikey": CONFIG['VT_API_KEY']}
+                print(f"\n[DEBUG] Sending request to VirusTotal...")  # Debug line
+                response = requests.post(
+                    "https://www.virustotal.com/api/v3/files",
+                    headers=headers,
+                    files=files,
+                    timeout=30
+                )
+            print(" Done!")
+
+            print(f"[DEBUG] Response status: {response.status_code}")  # Debug line
             if response.status_code == 200:
                 result = response.json()
-                print(f"\n[+] Scan ID: {result['data']['id']}")
-                print("Check results later at: https://www.virustotal.com")
+                scan_id = result['data']['id']
+                print(f"\n[+] Scan ID: {scan_id}")
+                print(f"[+] Report URL: https://www.virustotal.com/gui/file/{scan_id}")
+                self._cache_scan_id(file_path, scan_id)
             else:
-                print("[!] Upload failed")
+                print(f"[!] Error: Upload failed (HTTP {response.status_code})")
+                print(f"[DEBUG] Response text: {response.text}")  # Debug line
+
         except Exception as e:
-            print(f"[!] Error: {e}")
+            print(f"\n[!] Critical Error: {str(e)}")
+            print("[DEBUG] Exception occurred during upload")  # Debug line
+
+        if response.status_code == 200:
+            result = response.json()
+            scan_id = result['data']['id']
+            print(f"\n[+] Scan ID: {scan_id}")
+        
+        # Start polling in background
+        Thread(target=self._poll_results, args=(scan_id, file_path), daemon=True).start()
+ 
+    def _cache_scan_id(self, file_path, scan_id):
+        """Store scan IDs for future reference"""
+        cache_file = os.path.expanduser("~/.dstenex_scans.log")
+        with open(cache_file, "a") as f:
+            f.write(f"{file_path}|{scan_id}|{datetime.now()}\n")
+
+    def vt_bulk_scan(self, folder_path, max_files=10):
+        """Scan multiple files in a folder"""
+        if not os.path.isdir(folder_path):
+            print("[!] Invalid folder path")
+            return
+            
+        print(f"\n[+] Scanning up to {max_files} files in {folder_path}...")
+        scanned = 0
+        
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                if scanned >= max_files:
+                    break
+                    
+                file_path = os.path.join(root, file)
+                print(f"\n[File {scanned+1}/{max_files}] {file}")
+                
+                # First try local scan
+                local_result = self.local_scan(file_path, silent=True)
+                if local_result and local_result['infected']:
+                    print("[!] LOCAL SCAN DETECTED THREAT!")
+                    self.quarantine_file(file_path)
+                    scanned += 1
+                    continue
+                
+                # Fall back to VT if file < 32MB
+                if os.path.getsize(file_path) <= 32 * 1024 * 1024:
+                    self.vt_file_scan(file_path)
+                else:
+                    print("[!] File too large for VT, skipped")
+                
+                scanned += 1
+                time.sleep(15)  # Respect VT API rate limits
+        
+        print("\n[+] Bulk scan completed")
+
+    def _poll_results(self, scan_id, original_path=None):
+        """Background result polling"""
+        url = f"https://www.virustotal.com/api/v3/analyses/{scan_id}"
+        headers = {"x-apikey": CONFIG['VT_API_KEY']}
+        
+        print("\n[+] Waiting for results... (Ctrl+C to check later)")
+        try:
+            for _ in range(10):  # Max 10 checks
+                time.sleep(30)
+                response = requests.get(url, headers=headers)
+                if response.status_code == 200:
+                    result = response.json()
+                    status = result['data']['attributes']['status']
+                    
+                    if status == 'completed':
+                        stats = result['data']['attributes']['stats']
+                        print(f"\n[+] Final Results: {stats['malicious']} malicious / {stats['harmless']} clean")
+                        
+                        if stats['malicious'] > 0 and original_path:
+                            self.quarantine_file(original_path)
+                        return
+                    else:
+                        print(f"\r  ↳ Status: {status}...", end='', flush=True)
+        except Exception:
+            print("\n[!] Polling interrupted. Check later with 'check_result'")
+
+    def check_scan_result(self, scan_id):
+        """Check existing scan results"""
+        url = f"https://www.virustotal.com/api/v3/analyses/{scan_id}"
+        headers = {"x-apikey": CONFIG['VT_API_KEY']}
+        
+        try:
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                result = response.json()
+                stats = result['data']['attributes']['stats']
+                print(f"\n[+] Results: {stats['malicious']} malicious / {stats['harmless']} clean")
+                
+                if stats['malicious'] > 0:
+                    print("[!] MALICIOUS CONTENT DETECTED")
+            else:
+                print("[!] Results not available yet")
+        except Exception as e:
+            print(f"[!] Error checking results: {e}")
+
+    def local_scan(self, file_path, silent=False):
+        """Integrate ClamAV for local scanning"""
+        try:
+            import pyclamd
+            cd = pyclamd.ClamdAgnostic()
+            scan_result = cd.scan_file(file_path)
+            
+            if scan_result and scan_result.get(file_path) == 'OK':
+                if not silent:
+                    print("[+] Local scan: Clean")
+                return {'infected': False}
+            else:
+                if not silent:
+                    print("[!] Local scan: Infected!")
+                    print(f"Detection: {scan_result.get(file_path, 'Unknown threat')}")
+                return {'infected': True, 'threat': scan_result.get(file_path)}
+                
+        except ImportError:
+            if not silent:
+                print("[!] ClamAV not installed (pip install pyclamd)")
+        except Exception as e:
+            if not silent:
+                print(f"[!] Local scan failed: {e}")
+        return None
+
+    def quarantine_file(self, file_path, file_hash=None):
+        """Move dangerous files to quarantine"""
+        quarantine_dir = os.path.join(os.path.expanduser("~"), "quarantine")
+        os.makedirs(quarantine_dir, exist_ok=True)
+        
+        try:
+            if file_path:
+                filename = os.path.basename(file_path)
+                new_path = os.path.join(quarantine_dir, f"quarantined_{filename}")
+                shutil.move(file_path, new_path)
+                print(f"[+] File moved to quarantine: {new_path}")
+            elif file_hash:
+                with open(os.path.join(quarantine_dir, "quarantined_hashes.txt"), "a") as f:
+                    f.write(f"{file_hash}\n")
+                print("[+] Malicious hash recorded")
+        except Exception as e:
+            print(f"[!] Quarantine failed: {e}")
+
+    def _validate_vt_api(self):
+        """Check if API key is configured"""
+        if not CONFIG.get('VT_API_KEY') or CONFIG['VT_API_KEY'] == 'YOUR_VIRUSTOTAL_API_KEY':
+            print("[!] Configure VirusTotal API key first:")
+            print("1. Get key from: https://www.virustotal.com/gui/join-us")
+            print("2. Edit CONFIG['VT_API_KEY'] in your code")
+            return False
+        return True
+
+
+        # go up to change
 
     def monitor_registry(self):
         """Monitor Windows registry changes"""
