@@ -13,6 +13,11 @@ import random
 import socket
 import ssl
 import subprocess
+import json
+import OpenSSL
+from datetime import datetime
+from cryptography.x509 import load_pem_x509_certificate
+from cryptography.x509.ocsp import OCSPRequestBuilder
 from threading import Thread, Event
 from datetime import datetime
 from cryptography.fernet import Fernet
@@ -161,6 +166,8 @@ class SecurityTerminal:
     #         print(f"[+] MAC spoofed to {new_mac}")
     #     else:
     #         print("[!] Requires admin privileges")
+
+    # BELOW MACSPOOF CODE WORKING
     def spoof_mac(self, interface=None):
         """Enhanced MAC spoofing with detailed debugging"""
         print("\n[DEBUG] Starting macspoof command")  # Debug line 1
@@ -558,25 +565,295 @@ class SecurityTerminal:
         except Exception as e:
             print(f"[!] Error: {e}")
 
-    def check_ssl(self, domain):
-        """Check SSL certificate validity"""
-        print(f"\n[+] Checking SSL certificate for {domain}...")
+
+# ====ssl check starts here
+    # # def check_ssl(self, domain=None):
+    #     """Enhanced SSL certificate checker with user input"""
+    #     if not domain:
+    #         domain = input("Enter domain to check (e.g., example.com): ").strip()
+    
+    #     print(f"\n[+] Checking SSL certificate for {domain}...")
+    
+    #     try:
+    #     # Set timeout (10 seconds)
+    #         socket.setdefaulttimeout(10)
+        
+    #     # Create secure context
+    #         context = ssl.create_default_context()
+    #         context.check_hostname = True
+        
+    #         with socket.create_connection((domain, 443)) as sock:
+    #             with context.wrap_socket(sock, server_hostname=domain) as ssock:
+    #                 cert = ssock.getpeercert()
+    #                 cipher = ssock.cipher()
+    #                 protocol = ssock.version()
+                
+    #             # Certificate details
+    #                 issuer = dict(x[0] for x in cert['issuer'])
+    #                 subject = dict(x[0] for x in cert['subject'])
+    #                 expires = datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+    #                 valid_days = (expires - datetime.now()).days
+                
+    #             # Print full report
+    #                 print("\n╔" + "═"*50 + "╗")
+    #                 print(f"║ {'SSL Certificate Report':^48} ║")
+    #                 print("╠" + "═"*50 + "╣")
+    #                 print(f"║ {'Domain:':<15} {domain:<33} ║")
+    #                 print(f"║ {'Issuer:':<15} {issuer.get('organizationName', 'Unknown'):<33} ║")
+    #                 print(f"║ {'Subject:':<15} {subject.get('commonName', 'Unknown'):<33} ║")
+    #                 print(f"║ {'Expires:':<15} {expires.strftime('%Y-%m-%d')} ({valid_days} days left) ║")
+    #                 print(f"║ {'Protocol:':<15} {protocol:<33} ║")
+    #                 print(f"║ {'Cipher:':<15} {cipher[0]:<33} ║")
+    #                 print("╚" + "═"*50 + "╝")
+                
+    #             # Additional warnings
+    #                 if valid_days < 30:
+    #                     print("[!] WARNING: Certificate expires soon!")
+    #                 if 'SHA1' in str(cert):
+    #                     print("[!] WARNING: Using weak SHA-1 signature")
+                    
+    #     except ssl.SSLCertVerificationError as e:
+    #         print(f"[!] Certificate verification failed: {e}")
+    #     except socket.timeout:
+    #         print("[!] Connection timed out")
+    #     except Exception as e:
+    #         print(f"[!] SSL check failed: {e}")
+
+    # def check_ssl(self, domain=None):
+    #     """Comprehensive SSL certificate analyzer with export options"""
+    #     if not domain:
+    #         domain = input("Enter domain to check (e.g., example.com): ").strip()
+    
+    #     print(f"\n[+] Analyzing SSL certificate for {domain}...")
+    
+    #     try:
+    #     # Configure enhanced SSL context
+    #         context = ssl.create_default_context()
+    #         context.check_hostname = True
+    #         context.verify_mode = ssl.CERT_REQUIRED
+    #         context.load_default_certs()
+        
+    #     # Set timeout and create connection
+    #         socket.setdefaulttimeout(10)
+        
+    #         with socket.create_connection((domain, 443)) as sock:
+    #             with context.wrap_socket(sock, server_hostname=domain) as ssock:
+    #                 cert = ssock.getpeercert(binary_form=True)
+    #                 x509 = ssl.DER_cert_to_PEM_cert(cert)
+    #                 cert_obj = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, x509)
+                
+    #             # Get certificate details
+    #                 issuer = dict(x[0] for x in ssock.getpeercert()['issuer'])
+    #                 subject = dict(x[0] for x in ssock.getpeercert()['subject'])
+    #                 expires = datetime.strptime(ssock.getpeercert()['notAfter'], '%b %d %H:%M:%S %Y %Z')
+    #                 valid_days = (expires - datetime.now()).days
+                
+    #             # Get certificate chain
+    #                 chain = []
+    #                 for idx, cert_der in enumerate(ssock.getpeercert_chain() or []):
+    #                     cert_pem = ssl.DER_cert_to_PEM_cert(cert_der)
+    #                     chain_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
+    #                     chain.append({
+    #                         'subject': dict(chain_cert.get_subject().get_components()),
+    #                         'issuer': dict(chain_cert.get_issuer().get_components()),
+    #                         'expires': chain_cert.get_notAfter().decode('utf-8'),
+    #                         'serial': chain_cert.get_serial_number(),
+    #                         'version': chain_cert.get_version() + 1
+    #                     })
+                
+    #             # Check OCSP revocation status (requires requests)
+    #                 ocsp_status = self._check_ocsp(cert_obj, chain[0] if len(chain) > 0 else None)
+                
+    #             # Print comprehensive report
+    #                 self._print_ssl_report(domain, ssock, cert_obj, chain, ocsp_status, valid_days)
+                
+    #             # Export option
+    #                 if input("\nExport results to file? (y/N): ").lower() == 'y':
+    #                     self._export_ssl_results(domain, ssock, cert_obj, chain)
+    
+    #     except ssl.SSLError as e:
+    #         print(f"[!] SSL Error: {e}")
+    #     except socket.timeout:
+    #         print("[!] Connection timed out")
+    #     except Exception as e:
+    #         print(f"[!] Analysis failed: {str(e)}")
+
+    def check_ssl(self, domain=None):
+        """Comprehensive SSL certificate analyzer with export options"""
         try:
+            import OpenSSL
+            import ssl
+            import socket
+            from datetime import datetime
+        
+            if not domain:
+                domain = input("Enter domain to check (e.g., example.com): ").strip()
+                if not domain:
+                    print("[!] No domain provided")
+                    return
+        
+            print(f"\n[+] Analyzing SSL certificate for {domain}...")
+        
+        # Configure enhanced SSL context
             context = ssl.create_default_context()
+            context.check_hostname = True
+            context.verify_mode = ssl.CERT_REQUIRED
+            context.load_default_certs()
+        
+        # Set timeout and create connection
+            socket.setdefaulttimeout(10)
+        
             with socket.create_connection((domain, 443)) as sock:
                 with context.wrap_socket(sock, server_hostname=domain) as ssock:
-                    cert = ssock.getpeercert()
-            
-            issuer = dict(x[0] for x in cert['issuer'])
-            subject = dict(x[0] for x in cert['subject'])
-            expires = datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
-            
-            print(f"  Issuer: {issuer.get('organizationName', 'Unknown')}")
-            print(f"  Subject: {subject.get('commonName', 'Unknown')}")
-            print(f"  Expires: {expires}")
-            print(f"  Valid: {'Yes' if expires > datetime.now() else 'NO (EXPIRED)'}")
+                    cert = ssock.getpeercert(binary_form=True)
+                    x509 = ssl.DER_cert_to_PEM_cert(cert)
+                    cert_obj = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, x509)
+                
+                # Get certificate details
+                    peer_cert = ssock.getpeercert()
+                    issuer = dict(x[0] for x in peer_cert['issuer'])
+                    subject = dict(x[0] for x in peer_cert['subject'])
+                    expires = datetime.strptime(peer_cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+                    valid_days = (expires - datetime.now()).days
+                
+                # Get certificate chain using OpenSSL
+                    chain = []
+                    store = OpenSSL.crypto.X509Store()
+                    store_ctx = OpenSSL.crypto.X509StoreContext(store, cert_obj)
+                
+                    try:
+                        chain_result = store_ctx.get_verified_chain()
+                        for i, chain_cert in enumerate(chain_result):
+                            chain.append({
+                                'subject': dict(chain_cert.get_subject().get_components()),
+                                'issuer': dict(chain_cert.get_issuer().get_components()),
+                                'expires': chain_cert.get_notAfter().decode('utf-8'),
+                                'serial': chain_cert.get_serial_number(),
+                                'version': chain_cert.get_version() + 1
+                            })
+                    except OpenSSL.crypto.X509StoreContextError:
+                        chain.append({
+                            'subject': dict(cert_obj.get_subject().get_components()),
+                            'issuer': dict(cert_obj.get_issuer().get_components()),
+                            'expires': cert_obj.get_notAfter().decode('utf-8'),
+                            'serial': cert_obj.get_serial_number(),
+                            'version': cert_obj.get_version() + 1
+                        })
+                
+                # Check OCSP revocation status
+                    ocsp_status = "Unknown"
+                    if len(chain) > 1:
+                        ocsp_status = self._check_ocsp(cert_obj, chain[1])
+                
+                # Print comprehensive report
+                    self._print_ssl_report(domain, ssock, cert_obj, chain, ocsp_status, valid_days)
+                
+                    # Export option
+                    if input("\nExport results to file? (y/N): ").lower() == 'y':
+                        self._export_ssl_results(domain, ssock, cert_obj, chain)
+    
+        except ssl.SSLError as e:
+            print(f"[!] SSL Error: {e}")
+        except socket.timeout:
+            print("[!] Connection timed out")
+        except ImportError as e:
+            print(f"[!] Required module missing: {str(e)}")
+            print("[!] Please install pyOpenSSL: pip install pyopenssl")
         except Exception as e:
-            print(f"[!] SSL check failed: {e}")
+            print(f"[!] Analysis failed: {str(e)}")
+
+
+    def _print_ssl_report(self, domain, ssock, cert_obj, chain, ocsp_status, valid_days):
+        """Display formatted SSL report"""
+    # Basic info box
+        print("\n╔" + "═"*60 + "╗")
+        print(f"║ {'SSL/TLS Certificate Analysis':^58} ║")
+        print("╠" + "═"*60 + "╣")
+        print(f"║ {'Domain:':<15} {domain:<43} ║")
+        print(f"║ {'Issuer:':<15} {cert_obj.get_issuer().CN:<43} ║")
+        print(f"║ {'Subject:':<15} {cert_obj.get_subject().CN:<43} ║")
+        print(f"║ {'Expires:':<15} {cert_obj.get_notAfter().decode('utf-8')} ({valid_days} days) ║")
+        print(f"║ {'Protocol:':<15} {ssock.version():<43} ║")
+        print(f"║ {'Cipher:':<15} {ssock.cipher()[0]:<43} ║")
+        print(f"║ {'OCSP Status:':<15} {ocsp_status:<43} ║")
+        print("╚" + "═"*60 + "╝")
+    
+    # Certificate chain visualization
+        print("\n[Certificate Chain]")
+        for i, cert in enumerate(chain):
+            print(f"{'  ' * i}└─ {cert['subject'].get(b'CN', b'Unknown').decode('utf-8')}")
+            if i == 0:
+                print(f"    {'Issuer:':<10} {cert['issuer'].get(b'CN', b'Unknown').decode('utf-8')}")
+                print(f"    {'Valid Until:':<10} {cert['expires']}")
+    
+    # Security recommendations
+        print("\n[Security Assessment]")
+        if valid_days < 30:
+            print("[!] Certificate expires soon!")
+        if 'SHA1' in cert_obj.get_signature_algorithm().decode('utf-8'):
+            print("[!] Weak signature algorithm (SHA-1)")
+        if ssock.version() == 'TLSv1':
+            print("[!] Insecure protocol version (TLS 1.0)")
+        elif ssock.version() == 'TLSv1.1':
+            print("[!] Deprecated protocol version (TLS 1.1)")
+
+    def _check_ocsp(self, cert, issuer_cert):
+        """Check OCSP revocation status"""
+        try:
+            
+        
+            cert = load_pem_x509_certificate(
+                OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+            )
+        
+            if issuer_cert:
+                issuer = load_pem_x509_certificate(
+                    OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, issuer_cert)
+                )
+                builder = OCSPRequestBuilder()
+                builder = builder.add_certificate(cert, issuer)
+                req = builder.build()
+            
+                ocsp_url = cert.extensions.get_extension_for_class(
+                    cryptography.x509.AuthorityInformationAccess
+                ).value.get_ocsp_urls()[0]
+            
+                response = requests.post(
+                    ocsp_url,
+                    data=req.public_bytes(serialization.Encoding.DER),
+                    headers={'Content-Type': 'application/ocsp-request'}
+                )
+            
+                return "REVOKED" if response.status == 1 else "VALID"
+        except:
+            return "Unknown"
+
+    def _export_ssl_results(self, domain, ssock, cert_obj, chain):
+        """Export results to JSON file"""
+        
+    
+        data = {
+            'domain': domain,
+            'scan_date': datetime.now().isoformat(),
+            'protocol': ssock.version(),
+            'cipher': ssock.cipher()[0],
+            'certificate': {
+                'subject': dict(cert_obj.get_subject().get_components()),
+                'issuer': dict(cert_obj.get_issuer().get_components()),
+                'valid_until': cert_obj.get_notAfter().decode('utf-8'),
+                'serial': cert_obj.get_serial_number(),
+                'signature_algorithm': cert_obj.get_signature_algorithm().decode('utf-8')
+            },
+            'chain': chain
+        }
+    
+        filename = f"ssl_scan_{domain}_{datetime.now().strftime('%Y%m%d')}.json"
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=2)
+    
+        print(f"[+] Results saved to {filename}")
+
+        # ssl ends here====
 
     def dump_memory(self):
         """Create a memory dump (requires admin)"""
@@ -610,7 +887,7 @@ class SecurityTerminal:
     def check_updates(self):
         """Check for DST updates"""
         try:
-            response = requests.get(CONFIG['UPDATE_URL'])
+            response = requests.get(CONFIG['https://github.com/Stark-Expo-Tech-Exchange/DSTerminal.git'])
             latest = response.json()
             if latest['tag_name'] > CONFIG['CURRENT_VERSION']:
                 return f"Update available: {latest['tag_name']}\nDownload: {latest['html_url']}"
@@ -1065,8 +1342,17 @@ class SecurityTerminal:
             self.wifi_audit(cmd.split()[1] if len(cmd.split()) > 1 else "wlan0")
         elif cmd.startswith("stegcheck"): 
             self.check_steganography(cmd.split()[1] if len(cmd.split()) > 1 else input("Image path: "))
-        elif cmd.startswith("certcheck"): 
-            self.check_ssl(cmd.split()[1] if len(cmd.split()) > 1 else "google.com")
+        # elif cmd.startswith("certcheck"): 
+        #     self.check_ssl(cmd.split()[1] if len(cmd.split()) > 1 else "google.com")
+
+        elif cmd.startswith("certcheck"):
+        # Handle both command line input and interactive prompt
+            if len(cmd.split()) > 1:
+                domain = cmd.split()[1]
+                self.check_ssl(domain)
+            else:
+                self.check_ssl()  # Will prompt for domain inside the method
+
         elif cmd == "memdump": 
             self.dump_memory()
         elif cmd == "torify": 
