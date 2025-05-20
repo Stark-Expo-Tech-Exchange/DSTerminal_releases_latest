@@ -1,0 +1,9 @@
+2025-05-20 12:02:18,825 - Hardening started at 2025-05-20 12:02:18.824790
+2025-05-20 12:02:18,962 - Attempting: Disabling root SSH
+2025-05-20 12:02:19,005 - Attempting: Disabling SSH passwords
+2025-05-20 12:02:19,052 - Attempting: Enabling UFW
+2025-05-20 12:02:20,841 - Attempting: Configuring UFW defaults
+2025-05-20 12:02:32,594 - Attempting: Hardening kernel
+2025-05-20 12:02:32,677 - Attempting: Disabling core dumps
+2025-05-20 12:02:32,739 - Attempting: Restarting SSH
+2025-05-20 12:02:32,844 - Hardening completed in 14.02 seconds

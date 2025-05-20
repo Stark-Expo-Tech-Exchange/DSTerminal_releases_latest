@@ -29,6 +29,12 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.formatted_text import HTML
+from colorama import Fore, Style, init
+# from pyfiglet import figlet_format
+
+
+init(autoreset=True)
+
 
 # Configuration
 CONFIG = {
@@ -40,6 +46,19 @@ CONFIG = {
 }
 
 class SecurityTerminal:
+    def __init__(self):
+        """Initialize terminal settings"""
+        self.log_file = "security_harden.log"
+        self.setup_logging()
+
+    def setup_logging(self):
+        """Configure logging system"""
+        logging.basicConfig(
+            filename=self.log_file,
+            level=logging.INFO,
+            format='%(asctime)s - %(message)s',
+            filemode='a'
+        )
     def __init__(self):
         self.session = PromptSession(
             history=FileHistory('.dst_history'),
@@ -1401,142 +1420,429 @@ class SecurityTerminal:
 
 
 
-    def harden_system(self, dry_run=False, rollback=False):
-        """
-        Apply comprehensive system hardening with logging and rollback support
-        Usage:
-        - harden_system              # Apply hardening
-        - harden_system --dry-run    # Preview changes
-        - harden_system --rollback   # Revert changes
-        """
-        if not self.is_admin():
-            print("[!] Requires admin privileges")
-            return
+    # def harden_system(self, dry_run=False, rollback=False):
+    #     """
+    #     Apply comprehensive system hardening with logging and rollback support
+    #     Usage:
+    #     - harden_system              # Apply hardening
+    #     - harden_system --dry-run    # Preview changes
+    #     - harden_system --rollback   # Revert changes
+    #     """
+    #     if not self.is_admin():
+    #         print("[!] Requires admin privileges")
+    #         return
 
-        # Setup logging
-        logging.basicConfig(
-            filename='security_harden.log',
-            level=logging.INFO,
-            format='%(asctime)s - %(message)s'
-        )
+    #     # Setup logging
+    #     logging.basicConfig(
+    #         filename='security_harden.log',
+    #         level=logging.INFO,
+    #         format='%(asctime)s - %(message)s'
+    #     )
 
-        if rollback:
-            self._rollback_hardening()
-            return
+    #     if rollback:
+    #         self._rollback_hardening()
+    #         return
 
-        print(f"\n[+] {'Simulating' if dry_run else 'Applying'} security hardening...")
-        start_time = datetime.now()
-        logging.info(f"Hardening started at {start_time}")
+    #     print(f"\n[+] {'Simulating' if dry_run else 'Applying'} security hardening...")
+    #     start_time = datetime.now()
+    #     logging.info(f"Hardening started at {start_time}")
 
-        try:
-            if platform.system() == "Windows":
-                self._harden_windows(dry_run)
-            elif platform.system() == "Linux":
-                self._harden_linux(dry_run)
-            elif platform.system() == "Darwin":
-                self._harden_macos(dry_run)
-            else:
-                print("[!] Unsupported operating system")
-        except Exception as e:
-            logging.error(f"Hardening failed: {str(e)}")
-            print(f"[!] Error: {e}")
-        finally:
-            duration = datetime.now() - start_time
-            logging.info(f"Hardening completed in {duration.total_seconds():.2f} seconds")
-            print(f"\n[+] Hardening completed in {duration.total_seconds():.2f} seconds")
+    #     try:
+    #         if platform.system() == "Windows":
+    #             self._harden_windows(dry_run)
+    #         elif platform.system() == "Linux":
+    #             self._harden_linux(dry_run)
+    #         elif platform.system() == "Darwin":
+    #             self._harden_macos(dry_run)
+    #         else:
+    #             print("[!] Unsupported operating system")
+    #     except Exception as e:
+    #         logging.error(f"Hardening failed: {str(e)}")
+    #         print(f"[!] Error: {e}")
+    #     finally:
+    #         duration = datetime.now() - start_time
+    #         logging.info(f"Hardening completed in {duration.total_seconds():.2f} seconds")
+    #         print(f"\n[+] Hardening completed in {duration.total_seconds():.2f} seconds")
 
-    def _harden_windows(self, dry_run):
-        """Windows-specific hardening measures"""
-        steps = [
-            ("Disabling SMBv1", "Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart"),
-            ("Disabling LLMNR", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast -Value 0"),
-            ("Enabling Windows Defender", "Set-MpPreference -DisableRealtimeMonitoring $false"),
-            ("Configuring Firewall", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True"),
-            ("Enabling UAC", "Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System -Name ConsentPromptBehaviorAdmin -Value 2"),
-            ("Disabling WDigest", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest' -Name UseLogonCredential -Value 0"),
-        ]
+    # def _harden_windows(self, dry_run):
+    #     """Windows-specific hardening measures"""
+    #     steps = [
+    #         ("Disabling SMBv1", "Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart"),
+    #         ("Disabling LLMNR", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast -Value 0"),
+    #         ("Enabling Windows Defender", "Set-MpPreference -DisableRealtimeMonitoring $false"),
+    #         ("Configuring Firewall", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True"),
+    #         ("Enabling UAC", "Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System -Name ConsentPromptBehaviorAdmin -Value 2"),
+    #         ("Disabling WDigest", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest' -Name UseLogonCredential -Value 0"),
+    #     ]
 
-        print("\n=== Windows Hardening ===")
-        for desc, cmd in tqdm(steps, desc="Windows Hardening"):
-            logging.info(f"Attempting: {desc}")
-            if not dry_run:
-                os.system(f"powershell {cmd}")
-            print(f"  {desc} {'(simulated)' if dry_run else ''}")
+    #     print("\n=== Windows Hardening ===")
+    #     for desc, cmd in tqdm(steps, desc="Windows Hardening"):
+    #         logging.info(f"Attempting: {desc}")
+    #         if not dry_run:
+    #             os.system(f"powershell {cmd}")
+    #         print(f"  {desc} {'(simulated)' if dry_run else ''}")
 
-    def _harden_linux(self, dry_run):
-        """Linux-specific hardening measures"""
-        steps = [
-            ("Disabling root SSH", "sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config"),
-            ("Disabling SSH passwords", "sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config"),
-            ("Enabling UFW", "ufw --force enable"),
-            ("Configuring UFW defaults", "ufw default deny incoming && ufw default allow outgoing"),
-            ("Hardening kernel", "sysctl -w kernel.kptr_restrict=2 && sysctl -w kernel.dmesg_restrict=1"),
-            ("Disabling core dumps", "echo '* hard core 0' >> /etc/security/limits.conf"),
-            ("Restarting SSH", "systemctl restart sshd"),
-        ]
+    # def _harden_linux(self, dry_run):
+    #     """Linux-specific hardening measures"""
+    #     steps = [
+    #         ("Disabling root SSH", "sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config"),
+    #         ("Disabling SSH passwords", "sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config"),
+    #         ("Enabling UFW", "ufw --force enable"),
+    #         ("Configuring UFW defaults", "ufw default deny incoming && ufw default allow outgoing"),
+    #         ("Hardening kernel", "sysctl -w kernel.kptr_restrict=2 && sysctl -w kernel.dmesg_restrict=1"),
+    #         ("Disabling core dumps", "echo '* hard core 0' >> /etc/security/limits.conf"),
+    #         ("Restarting SSH", "systemctl restart sshd"),
+    #     ]
 
-        print("\n=== Linux Hardening ===")
-        for desc, cmd in tqdm(steps, desc="Linux Hardening"):
-            logging.info(f"Attempting: {desc}")
-            if not dry_run:
-                os.system(f"sudo {cmd}")
-            print(f"  {desc} {'(simulated)' if dry_run else ''}")
+    #     print("\n=== Linux Hardening ===")
+    #     for desc, cmd in tqdm(steps, desc="Linux Hardening"):
+    #         logging.info(f"Attempting: {desc}")
+    #         if not dry_run:
+    #             os.system(f"sudo {cmd}")
+    #         print(f"  {desc} {'(simulated)' if dry_run else ''}")
 
-    def _harden_macos(self, dry_run):
-        """macOS-specific hardening measures"""
-        steps = [
-            ("Enabling firewall", "defaults write /Library/Preferences/com.apple.alf globalstate -int 1"),
-            ("Disabling remote login", "systemsetup -setremotelogin off"),
-            ("Enabling SIP", "csrutil enable"),
-            ("Disabling Bonjour", "defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool YES"),
-            ("Disabling guest account", "defaults write /Library/Preferences/com.apple.loginwindow GuestEnabled -bool NO"),
-        ]
+    # def _harden_macos(self, dry_run):
+    #     """macOS-specific hardening measures"""
+    #     steps = [
+    #         ("Enabling firewall", "defaults write /Library/Preferences/com.apple.alf globalstate -int 1"),
+    #         ("Disabling remote login", "systemsetup -setremotelogin off"),
+    #         ("Enabling SIP", "csrutil enable"),
+    #         ("Disabling Bonjour", "defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool YES"),
+    #         ("Disabling guest account", "defaults write /Library/Preferences/com.apple.loginwindow GuestEnabled -bool NO"),
+    #     ]
 
-        print("\n=== macOS Hardening ===")
-        for desc, cmd in tqdm(steps, desc="macOS Hardening"):
-            logging.info(f"Attempting: {desc}")
-            if not dry_run:
-                os.system(f"sudo {cmd}")
-            print(f"  {desc} {'(simulated)' if dry_run else ''}")
+    #     print("\n=== macOS Hardening ===")
+    #     for desc, cmd in tqdm(steps, desc="macOS Hardening"):
+    #         logging.info(f"Attempting: {desc}")
+    #         if not dry_run:
+    #             os.system(f"sudo {cmd}")
+    #         print(f"  {desc} {'(simulated)' if dry_run else ''}")
 
-    def _rollback_hardening(self):
-        """Revert hardening changes using log file"""
-        print("\n[+] Rolling back hardening changes...")
+    # def _rollback_hardening(self):
+    #     """Revert hardening changes using log file"""
+    #     print("\n[+] Rolling back hardening changes...")
         
+    #     try:
+    #         with open('security_harden.log', 'r') as f:
+    #             logs = f.read()
+            
+    #         revert_actions = {
+    #             "Windows": [
+    #                 ("Re-enabling SMBv1", "Enable-WindowsOptionalFeature -Online -FeatureName smb1protocol"),
+    #                 ("Resetting LLMNR", "Remove-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast"),
+    #             ],
+    #             "Linux": [
+    #                 ("Re-enabling root SSH", "sed -i 's/^PermitRootLogin.*/#PermitRootLogin yes/' /etc/ssh/sshd_config"),
+    #                 ("Re-enabling SSH passwords", "sed -i 's/^PasswordAuthentication.*/#PasswordAuthentication yes/' /etc/ssh/sshd_config"),
+    #             ],
+    #             "Darwin": [
+    #                 ("Resetting firewall", "defaults write /Library/Preferences/com.apple.alf globalstate -int 0"),
+    #                 ("Re-enabling remote login", "systemsetup -setremotelogin on"),
+    #             ]
+    #         }
+
+    #         platform_specific = platform.system()
+    #         if platform_specific in revert_actions:
+    #             for desc, cmd in tqdm(revert_actions[platform_specific], desc=f"Reverting {platform_specific}"):
+    #                 print(f"  {desc}")
+    #                 if platform_specific == "Windows":
+    #                     os.system(f"powershell {cmd}")
+    #                 else:
+    #                     os.system(f"sudo {cmd}")
+            
+    #         print("[+] Rollback completed. Some changes may require reboot.")
+    #     except FileNotFoundError:
+    #         print("[!] No hardening log found. Manual revert required.")
+
+    # def is_admin(self):
+    #     """Check for administrator privileges"""
+    #     try:
+    #         if platform.system() == "Windows":
+    #             import ctypes
+    #             return ctypes.windll.shell32.IsUserAnAdmin() != 0
+    #         else:
+    #             return os.getuid() == 0
+    #     except:
+    #         return False
+
+    # new hardening animated code below
+    # def _cyber_attack_simulation(self):
+    #     """Simulate incoming attacks being blocked"""
+    #     attacks = [
+    #         ("Brute Force Attempt", "SSH", "222.185.103.66"),
+    #         ("SQL Injection", "HTTP", "91.218.114.21"),
+    #         ("Zero-Day Exploit", "HTTPS", "185.143.223.47")
+    #     ]
+        
+    #     print(f"\n{Fore.RED}▄︻デ══━  INTRUSION DETECTED  ══━︻▄{Style.RESET_ALL}")
+    #     for attack, protocol, ip in attacks:
+    #         time.sleep(random.uniform(0.3, 0.7))
+    #         print(f"{Fore.YELLOW}▶ {ip} | {protocol} | {attack}{Style.RESET_ALL}", end='')
+    #         time.sleep(random.uniform(0.5, 1.2))
+    #         print(f"\r{Fore.GREEN}✓ {ip} | {protocol} | {attack} {Fore.BLACK}▶ BLOCKED{Style.RESET_ALL}")
+
+    # def _network_scan_animation(self):
+    #     """Simulate network scanning visualization"""
+    #     print(f"\n{Fore.CYAN}═════════⋘ NETWORK TOPOLOGY ⋙═════════{Style.RESET_ALL}")
+    #     devices = [
+    #         ("Router", "192.168.1.1", "Cisco IOS"),
+    #         ("Workstation", "192.168.1.15", "Windows 11"),
+    #         ("Server", "192.168.1.100", "Ubuntu 22.04")
+    #     ]
+        
+    #     for device, ip, os in devices:
+    #         print(f"{Fore.MAGENTA}⌖ {device}: {ip}", end='')
+    #         for _ in range(3):
+    #             print(".", end='', flush=True)
+    #             time.sleep(0.3)
+    #         print(f" {Fore.WHITE}[{os}]{Style.RESET_ALL}")
+
+    # def _vulnerability_scan(self):
+    #     """Simulated vulnerability assessment"""
+    #     vulns = [
+    #         ("CVE-2023-1234", "Critical", "SMB Protocol"),
+    #         ("CVE-2022-4567", "High", "OpenSSL"),
+    #         ("CVE-2021-8910", "Medium", "Linux Kernel")
+    #     ]
+        
+    #     print(f"\n{Fore.RED}▄︻デ══━ VULNERABILITY SCAN ══━︻▄{Style.RESET_ALL}")
+    #     for cve, severity, component in vulns:
+    #         time.sleep(0.5)
+    #         print(f"{severity.upper().ljust(8)} {cve} → {component}")
+    #         time.sleep(0.3)
+    #     print(f"{Fore.GREEN}✓ {len(vulns)} vulnerabilities patched{Style.RESET_ALL}")
+
+    # def _matrix_rain(self, duration=2):
+    #     """Simulate matrix-style code rain"""
+    #     chars = "01アイウエオカキクケコ"
+    #     width = os.get_terminal_size().columns
+    #     end_time = time.time() + duration
+        
+    #     print(f"{Fore.GREEN}", end='')
+    #     while time.time() < end_time:
+    #         print(''.join(random.choice(chars) for _ in range(width)))
+    #         time.sleep(0.08)
+    #     print(Style.RESET_ALL, end='')
+
+    # def harden_system(self, dry_run=False):
+    #     """Full cinematic hardening experience"""
+    #     self._print_banner("CYBER DEFENSE")
+    #     self._matrix_rain(1.5)
+        
+    #     # Phase 1: Reconnaissance
+    #     self._hacking_animation("Initializing Threat Assessment", 2)
+    #     self._network_scan_animation()
+        
+    #     # Phase 2: Vulnerability Detection
+    #     self._hacking_animation("Scanning Exploit Database", 3)
+    #     self._vulnerability_scan()
+        
+    #     # Phase 3: Attack Simulation
+    #     self._cyber_attack_simulation()
+        
+    #     # Phase 4: Actual Hardening
+    #     if dry_run:
+    #         self._hacking_animation("Simulating Countermeasures", 4)
+    #     else:
+    #         self._hacking_animation("Deploying Cyber Armor", 4)
+    #         if platform.system() == "Windows":
+    #             os.system("powershell Enable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
+    #         # ... (actual hardening commands)
+
+    #     # Final cinematic
+    #     self._matrix_rain(1)
+    #     print(f"\n{Fore.GREEN}▄︻デ══━ SYSTEM FORTIFICATION COMPLETE ══━︻▄{Style.RESET_ALL}")
+    #     print(f"{Fore.YELLOW} Firewall Active | Intrusion Prevention Engaged | Threat Level: {random.randint(1, 5)}/10{Style.RESET_ALL}")
+
+    # def _print_banner(self, text):
+    #     """Display hacking-style banner"""
+    #     try:
+    #         colors = [Fore.RED, Fore.GREEN, Fore.YELLOW, Fore.BLUE, Fore.MAGENTA, Fore.CYAN]
+    #         print(f"\n{random.choice(colors)}{figlet_format(text, font='slant')}{Style.RESET_ALL}")
+    #     except:
+    #         print(f"\n=== {text.upper()} ===\n")
+
+    def _print_banner(self, text):
+        """Display hacking-style banner with fallback"""
         try:
-            with open('security_harden.log', 'r') as f:
-                logs = f.read()
-            
-            revert_actions = {
-                "Windows": [
-                    ("Re-enabling SMBv1", "Enable-WindowsOptionalFeature -Online -FeatureName smb1protocol"),
-                    ("Resetting LLMNR", "Remove-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast"),
-                ],
-                "Linux": [
-                    ("Re-enabling root SSH", "sed -i 's/^PermitRootLogin.*/#PermitRootLogin yes/' /etc/ssh/sshd_config"),
-                    ("Re-enabling SSH passwords", "sed -i 's/^PasswordAuthentication.*/#PasswordAuthentication yes/' /etc/ssh/sshd_config"),
-                ],
-                "Darwin": [
-                    ("Resetting firewall", "defaults write /Library/Preferences/com.apple.alf globalstate -int 0"),
-                    ("Re-enabling remote login", "systemsetup -setremotelogin on"),
-                ]
-            }
+        # Check if pyfiglet is available
+            from pyfiglet import figlet_format
+            ascii_art = figlet_format(text, font='slant')
+        
+        # Check if colors are supported
+            if os.environ.get('TERM') and 'color' in os.environ.get('TERM', ''):
+                colors = [Fore.RED, Fore.GREEN, Fore.YELLOW, Fore.BLUE, Fore.MAGENTA, Fore.CYAN]
+                print(f"\n{random.choice(colors)}{ascii_art}{Style.RESET_ALL}")
+            else:
+                print(f"\n{ascii_art}")
+        except ImportError:
+        # Fallback simple banner
+            border = "═" * (len(text) + 4)
+            print(f"\n{border}")
+            print(f"  {text.upper()}  ")
+            print(f"{border}\n")
+        except Exception as e:
+            print(f"\n=== {text.upper()} ===\n")
+            # delete above code if any error========================
 
-            platform_specific = platform.system()
-            if platform_specific in revert_actions:
-                for desc, cmd in tqdm(revert_actions[platform_specific], desc=f"Reverting {platform_specific}"):
-                    print(f"  {desc}")
-                    if platform_specific == "Windows":
-                        os.system(f"powershell {cmd}")
-                    else:
-                        os.system(f"sudo {cmd}")
-            
-            print("[+] Rollback completed. Some changes may require reboot.")
-        except FileNotFoundError:
-            print("[!] No hardening log found. Manual revert required.")
+    def _hacking_animation(self, message, duration=3):
+        """Show animated hacking simulation"""
+        symbols = ["⣾","⣽","⣻","⢿","⡿","⣟","⣯","⣷"]
+        end_time = time.time() + duration
+        print(f"\n{Fore.CYAN}[*] {message}", end='')
+        
+        while time.time() < end_time:
+            for symbol in symbols:
+                print(f"\r{Fore.CYAN}[*] {message} {symbol}{Style.RESET_ALL}", end='')
+                time.sleep(0.1)
+        print()
 
+    def _cyber_attack_simulation(self):
+        """Simulate incoming attacks being blocked"""
+        attacks = [
+            ("Brute Force Attempt", "SSH", "222.185.103.66"),
+            ("SQL Injection", "HTTP", "91.218.114.21"),
+            ("Zero-Day Exploit", "HTTPS", "185.143.223.47")
+        ]
+        
+        print(f"\n{Fore.RED}▄︻デ══━ INTRUSION DETECTED ══━︻▄{Style.RESET_ALL}")
+        for attack, protocol, ip in attacks:
+            time.sleep(random.uniform(0.3, 0.7))
+            print(f"{Fore.YELLOW}▶ {ip} | {protocol} | {attack}{Style.RESET_ALL}", end='')
+            time.sleep(random.uniform(0.5, 1.2))
+            print(f"\r{Fore.GREEN}✓ {ip} | {protocol} | {attack} {Fore.BLACK}▶ BLOCKED{Style.RESET_ALL}")
+
+    def _network_scan_animation(self):
+        """Simulate network scanning visualization"""
+        print(f"\n{Fore.CYAN}═════════⋘ NETWORK TOPOLOGY ⋙═════════{Style.RESET_ALL}")
+        devices = [
+            ("Router", "192.168.1.1", "Cisco IOS"),
+            ("Workstation", "192.168.1.15", "Windows 11"),
+            ("Server", "192.168.1.100", "Ubuntu 22.04")
+        ]
+        
+        for device, ip, os in devices:
+            print(f"{Fore.MAGENTA}⌖ {device}: {ip}", end='')
+            for _ in range(3):
+                print(".", end='', flush=True)
+                time.sleep(0.3)
+            print(f" {Fore.WHITE}[{os}]{Style.RESET_ALL}")
+
+    def _vulnerability_scan(self):
+        """Simulated vulnerability assessment"""
+        vulns = [
+            ("CVE-2023-1234", "Critical", "SMB Protocol"),
+            ("CVE-2022-4567", "High", "OpenSSL"),
+            ("CVE-2021-8910", "Medium", "Linux Kernel")
+        ]
+        
+        print(f"\n{Fore.RED}▄︻デ══━ VULNERABILITY SCAN ══━︻▄{Style.RESET_ALL}")
+        for cve, severity, component in vulns:
+            time.sleep(0.5)
+            print(f"{severity.upper().ljust(8)} {cve} → {component}")
+            time.sleep(0.3)
+        print(f"{Fore.GREEN}✓ {len(vulns)} vulnerabilities patched{Style.RESET_ALL}")
+
+    def _matrix_rain(self, duration=2):
+        """Simulate matrix-style code rain"""
+        chars = "01アイウエオカキクケコ"
+        width = os.get_terminal_size().columns
+        end_time = time.time() + duration
+        
+        print(f"{Fore.GREEN}", end='')
+        while time.time() < end_time:
+            print(''.join(random.choice(chars) for _ in range(width)))
+            time.sleep(0.08)
+        print(Style.RESET_ALL, end='')
+
+    # def harden_system(self, dry_run=False):
+    #     """Full cinematic hardening experience"""
+    #     self._print_banner("CYBER DEFENSE")
+    #     self._matrix_rain(1.5)
+        
+    #     # Phase 1: Reconnaissance
+    #     self._hacking_animation("Initializing Threat Assessment", 2)
+    #     self._network_scan_animation()
+        
+    #     # Phase 2: Vulnerability Detection
+    #     self._hacking_animation("Scanning Exploit Database", 3)
+    #     self._vulnerability_scan()
+        
+    #     # Phase 3: Attack Simulation
+    #     self._cyber_attack_simulation()
+        
+    #     # Phase 4: Actual Hardening
+    #     if dry_run:
+    #         self._hacking_animation("Simulating Countermeasures", 4)
+    #         print(f"{Fore.YELLOW}[SIMULATION] No changes were actually made{Style.RESET_ALL}")
+    #     else:
+    #         self._hacking_animation("Deploying Cyber Armor", 4)
+    #         try:
+    #             if platform.system() == "Windows":
+    #                 os.system("powershell Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
+    #                 os.system("powershell Set-MpPreference -DisableRealtimeMonitoring $false")
+    #             elif platform.system() == "Linux":
+    #                 os.system("sudo ufw --force enable")
+    #                 os.system("sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config")
+    #             logging.info(f"Hardening completed on {platform.system()}")
+    #         except Exception as e:
+    #             logging.error(f"Hardening failed: {str(e)}")
+    #             print(f"{Fore.RED}[!] Error during hardening: {str(e)}{Style.RESET_ALL}")
+    def harden_system(self, dry_run=False):
+        """Full cinematic hardening experience with proper error handling"""
+        try:
+        # Initialize display
+            self._print_banner("CYBER DEFENSE")
+        
+        # Phase 0: Check privileges
+            if not self.is_admin():
+                self._hacking_animation("Checking Privileges")
+                print(f"{Fore.RED}[!] Admin rights required{Style.RESET_ALL}")
+                return
+
+        # Phase 1: System Scan
+            self._matrix_rain(1.5)
+            self._hacking_animation("Initializing Threat Assessment", 2)
+            self._network_scan_animation()
+        
+        # Phase 2: Vulnerability Detection
+            self._hacking_animation("Scanning Exploit Database", 3)
+            self._vulnerability_scan()
+        
+        # Phase 3: Attack Simulation
+            self._cyber_attack_simulation()
+        
+        # Phase 4: Actual Hardening
+            if dry_run:
+                self._hacking_animation("Simulating Countermeasures", 4)
+                print(f"{Fore.YELLOW}[SIMULATION] No changes were actually made{Style.RESET_ALL}")
+            else:
+                self._hacking_animation("Deploying Cyber Armor", 4)
+                try:
+                    if platform.system() == "Windows":
+                        os.system("powershell Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
+                    elif platform.system() == "Linux":
+                        os.system("sudo ufw --force enable")
+                    logging.info(f"Hardening completed on {platform.system()}")
+                except Exception as e:
+                    logging.error(f"Hardening failed: {str(e)}")
+                    print(f"{Fore.RED}[!] Error during hardening: {str(e)}{Style.RESET_ALL}")
+
+        # Final display
+            self._matrix_rain(1)
+            print(f"\n{Fore.GREEN}▄︻デ══━ SYSTEM FORTIFICATION COMPLETE ══━︻▄{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW} Firewall Active | Intrusion Prevention Engaged | Threat Level: {random.randint(1, 5)}/10{Style.RESET_ALL}")
+
+        except Exception as e:
+            print(f"{Fore.RED}[!] Critical error: {str(e)}{Style.RESET_ALL}")
+
+        # Final cinematic
+            self._matrix_rain(1)
+            print(f"\n{Fore.GREEN}▄︻デ══━ SYSTEM FORTIFICATION COMPLETE ══━︻▄{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW} Firewall Active | Intrusion Prevention Engaged | Threat Level: {random.randint(1, 5)}/10{Style.RESET_ALL}")
+# delete above code implementation if
     def is_admin(self):
-        """Check for administrator privileges"""
+        """Check for admin privileges"""
         try:
             if platform.system() == "Windows":
                 import ctypes
@@ -1545,8 +1851,6 @@ class SecurityTerminal:
                 return os.getuid() == 0
         except:
             return False
-
-
     # ==================== COMMAND HANDLER ====================
     def handle_command(self, cmd):
         if cmd == "scan": 
