@@ -1,8 +1,11 @@
 import os
+import sys
+
 import shutil
 import requests
-from threading import Thread
-import sys
+import logging
+from tqdm import tqdm
+
 import platform
 import hashlib
 import requests
@@ -15,12 +18,12 @@ import ssl
 import subprocess
 import json
 import OpenSSL
-from datetime import datetime
 from cryptography.x509 import load_pem_x509_certificate
 from cryptography.x509.ocsp import OCSPRequestBuilder
 from threading import Thread, Event
 from datetime import datetime
 from cryptography.fernet import Fernet
+
 from prompt_toolkit import PromptSession, HTML
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -1275,28 +1278,274 @@ class SecurityTerminal:
         except Exception as e:
             return f"[!] Registry scan failed: {e}"
 
-    def harden_system(self):
-        """Apply basic security hardening"""
+    # def harden_system(self):
+    #     """Apply basic security hardening"""
+    #     if not self.is_admin():
+    #         print("[!] Requires admin privileges")
+    #         return
+
+    #     print("\n[+] Applying security hardening...")
+    #     try:
+    #         if platform.system() == "Windows":
+    #             # Disable SMBv1
+    #             os.system("Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol")
+    #             # Enable Windows Defender
+    #             os.system("Set-MpPreference -DisableRealtimeMonitoring $false")
+    #             print("[+] Windows hardening applied")
+    #         else:
+    #             # Disable root login via SSH
+    #             os.system("sudo sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config")
+    #             # Enable firewall
+    #             os.system("sudo ufw enable")
+    #             print("[+] Linux hardening applied")
+    #     except Exception as e:
+    #         print(f"[!] Error: {e}")
+
+
+
+# UNCOMMENT GOING UP NOT BELOW
+
+    # def harden_system(self):
+    #     """Apply comprehensive security hardening based on platform"""
+    #     if not self.is_admin():
+    #         print("[!] Requires admin privileges")
+    #         return
+
+    #     print("\n[+] Applying security hardening...")
+    
+    #     try:
+    #         if platform.system() == "Windows":
+    #             self._harden_windows()
+    #         elif platform.system() == "Linux":
+    #             self._harden_linux()
+    #         elif platform.system() == "Darwin":
+    #             self._harden_macos()
+    #         else:
+    #             print("[!] Unsupported operating system")
+    #     except Exception as e:
+    #         print(f"[!] Error during hardening: {str(e)}")
+
+    # def _harden_windows(self):
+    #     """Windows-specific hardening measures"""
+    #     print("\n=== Windows Hardening ===")
+    
+    # # Disable insecure protocols
+    #     os.system("powershell Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
+    #     os.system("powershell Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\SSL 2.0\\Server' -Name Enabled -Value 0 -Type DWord")
+    
+    # # Enable security features
+    #     os.system("powershell Set-MpPreference -DisableRealtimeMonitoring $false")
+    #     os.system("powershell Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True")
+    
+    # # Configure User Account Control
+    #     os.system("powershell Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System -Name ConsentPromptBehaviorAdmin -Value 2")
+    
+    # # Disable LLMNR (Link-Local Multicast Name Resolution)
+    #     os.system("powershell Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast -Value 0")
+    
+    #     print("[+] Windows hardening applied. Reboot recommended for some changes.")
+
+    # def _harden_linux(self):
+    #     """Linux-specific hardening measures"""
+    #     print("\n=== Linux Hardening ===")
+    
+    # # SSH hardening
+    #     os.system("sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config")
+    #     os.system("sudo sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config")
+    
+    # # Firewall configuration
+    #     os.system("sudo ufw --force enable")
+    #     os.system("sudo ufw default deny incoming")
+    #     os.system("sudo ufw default allow outgoing")
+    
+    # # Kernel hardening
+    #     os.system("sudo sysctl -w kernel.kptr_restrict=2")
+    #     os.system("sudo sysctl -w kernel.dmesg_restrict=1")
+    
+    # # Disable core dumps
+    #     os.system("sudo echo '* hard core 0' >> /etc/security/limits.conf")
+    
+    # # Restart services
+    #     os.system("sudo systemctl restart sshd")
+    #     print("[+] Linux hardening applied. Some changes require reboot.")
+
+    # def _harden_macos(self):
+    #     """macOS-specific hardening measures"""
+    #     print("\n=== macOS Hardening ===")
+    
+    # # Enable firewall
+    #     os.system("sudo defaults write /Library/Preferences/com.apple.alf globalstate -int 1")
+    
+    # # Disable remote login
+    #     os.system("sudo systemsetup -setremotelogin off")
+    
+    # # Enable SIP (System Integrity Protection)
+    #     os.system("sudo csrutil enable")
+    
+    # # Disable Bonjour advertising
+    #     os.system("sudo defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool YES")
+    
+    #     print("[+] macOS hardening applied. Some changes require reboot.")
+
+    # def is_admin(self):
+    #     """Check for administrator privileges"""
+    #     try:
+    #         if platform.system() == "Windows":
+    #             import ctypes
+    #             return ctypes.windll.shell32.IsUserAnAdmin() != 0
+    #         else:
+    #             return os.getuid() == 0
+    #     except:
+    #         return False
+
+
+
+
+    def harden_system(self, dry_run=False, rollback=False):
+        """
+        Apply comprehensive system hardening with logging and rollback support
+        Usage:
+        - harden_system              # Apply hardening
+        - harden_system --dry-run    # Preview changes
+        - harden_system --rollback   # Revert changes
+        """
         if not self.is_admin():
             print("[!] Requires admin privileges")
             return
 
-        print("\n[+] Applying security hardening...")
+        # Setup logging
+        logging.basicConfig(
+            filename='security_harden.log',
+            level=logging.INFO,
+            format='%(asctime)s - %(message)s'
+        )
+
+        if rollback:
+            self._rollback_hardening()
+            return
+
+        print(f"\n[+] {'Simulating' if dry_run else 'Applying'} security hardening...")
+        start_time = datetime.now()
+        logging.info(f"Hardening started at {start_time}")
+
         try:
             if platform.system() == "Windows":
-                # Disable SMBv1
-                os.system("Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol")
-                # Enable Windows Defender
-                os.system("Set-MpPreference -DisableRealtimeMonitoring $false")
-                print("[+] Windows hardening applied")
+                self._harden_windows(dry_run)
+            elif platform.system() == "Linux":
+                self._harden_linux(dry_run)
+            elif platform.system() == "Darwin":
+                self._harden_macos(dry_run)
             else:
-                # Disable root login via SSH
-                os.system("sudo sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config")
-                # Enable firewall
-                os.system("sudo ufw enable")
-                print("[+] Linux hardening applied")
+                print("[!] Unsupported operating system")
         except Exception as e:
+            logging.error(f"Hardening failed: {str(e)}")
             print(f"[!] Error: {e}")
+        finally:
+            duration = datetime.now() - start_time
+            logging.info(f"Hardening completed in {duration.total_seconds():.2f} seconds")
+            print(f"\n[+] Hardening completed in {duration.total_seconds():.2f} seconds")
+
+    def _harden_windows(self, dry_run):
+        """Windows-specific hardening measures"""
+        steps = [
+            ("Disabling SMBv1", "Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart"),
+            ("Disabling LLMNR", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast -Value 0"),
+            ("Enabling Windows Defender", "Set-MpPreference -DisableRealtimeMonitoring $false"),
+            ("Configuring Firewall", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True"),
+            ("Enabling UAC", "Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System -Name ConsentPromptBehaviorAdmin -Value 2"),
+            ("Disabling WDigest", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest' -Name UseLogonCredential -Value 0"),
+        ]
+
+        print("\n=== Windows Hardening ===")
+        for desc, cmd in tqdm(steps, desc="Windows Hardening"):
+            logging.info(f"Attempting: {desc}")
+            if not dry_run:
+                os.system(f"powershell {cmd}")
+            print(f"  {desc} {'(simulated)' if dry_run else ''}")
+
+    def _harden_linux(self, dry_run):
+        """Linux-specific hardening measures"""
+        steps = [
+            ("Disabling root SSH", "sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config"),
+            ("Disabling SSH passwords", "sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config"),
+            ("Enabling UFW", "ufw --force enable"),
+            ("Configuring UFW defaults", "ufw default deny incoming && ufw default allow outgoing"),
+            ("Hardening kernel", "sysctl -w kernel.kptr_restrict=2 && sysctl -w kernel.dmesg_restrict=1"),
+            ("Disabling core dumps", "echo '* hard core 0' >> /etc/security/limits.conf"),
+            ("Restarting SSH", "systemctl restart sshd"),
+        ]
+
+        print("\n=== Linux Hardening ===")
+        for desc, cmd in tqdm(steps, desc="Linux Hardening"):
+            logging.info(f"Attempting: {desc}")
+            if not dry_run:
+                os.system(f"sudo {cmd}")
+            print(f"  {desc} {'(simulated)' if dry_run else ''}")
+
+    def _harden_macos(self, dry_run):
+        """macOS-specific hardening measures"""
+        steps = [
+            ("Enabling firewall", "defaults write /Library/Preferences/com.apple.alf globalstate -int 1"),
+            ("Disabling remote login", "systemsetup -setremotelogin off"),
+            ("Enabling SIP", "csrutil enable"),
+            ("Disabling Bonjour", "defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool YES"),
+            ("Disabling guest account", "defaults write /Library/Preferences/com.apple.loginwindow GuestEnabled -bool NO"),
+        ]
+
+        print("\n=== macOS Hardening ===")
+        for desc, cmd in tqdm(steps, desc="macOS Hardening"):
+            logging.info(f"Attempting: {desc}")
+            if not dry_run:
+                os.system(f"sudo {cmd}")
+            print(f"  {desc} {'(simulated)' if dry_run else ''}")
+
+    def _rollback_hardening(self):
+        """Revert hardening changes using log file"""
+        print("\n[+] Rolling back hardening changes...")
+        
+        try:
+            with open('security_harden.log', 'r') as f:
+                logs = f.read()
+            
+            revert_actions = {
+                "Windows": [
+                    ("Re-enabling SMBv1", "Enable-WindowsOptionalFeature -Online -FeatureName smb1protocol"),
+                    ("Resetting LLMNR", "Remove-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast"),
+                ],
+                "Linux": [
+                    ("Re-enabling root SSH", "sed -i 's/^PermitRootLogin.*/#PermitRootLogin yes/' /etc/ssh/sshd_config"),
+                    ("Re-enabling SSH passwords", "sed -i 's/^PasswordAuthentication.*/#PasswordAuthentication yes/' /etc/ssh/sshd_config"),
+                ],
+                "Darwin": [
+                    ("Resetting firewall", "defaults write /Library/Preferences/com.apple.alf globalstate -int 0"),
+                    ("Re-enabling remote login", "systemsetup -setremotelogin on"),
+                ]
+            }
+
+            platform_specific = platform.system()
+            if platform_specific in revert_actions:
+                for desc, cmd in tqdm(revert_actions[platform_specific], desc=f"Reverting {platform_specific}"):
+                    print(f"  {desc}")
+                    if platform_specific == "Windows":
+                        os.system(f"powershell {cmd}")
+                    else:
+                        os.system(f"sudo {cmd}")
+            
+            print("[+] Rollback completed. Some changes may require reboot.")
+        except FileNotFoundError:
+            print("[!] No hardening log found. Manual revert required.")
+
+    def is_admin(self):
+        """Check for administrator privileges"""
+        try:
+            if platform.system() == "Windows":
+                import ctypes
+                return ctypes.windll.shell32.IsUserAnAdmin() != 0
+            else:
+                return os.getuid() == 0
+        except:
+            return False
+
 
     # ==================== COMMAND HANDLER ====================
     def handle_command(self, cmd):
