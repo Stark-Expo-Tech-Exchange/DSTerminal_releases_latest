@@ -108,7 +108,7 @@ class SecurityTerminal:
         ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
         
     ╠════════════════════════════════════════════════════════════════============══════╣
-    ║    Defensive Security Terminal v2.0 | {platform.system()} {platform.release()}   ║
+    ║    Defensive Security Terminal v2.0.0 | {platform.system()} {platform.release()}   ║
     ║    Developed by: Spark Wilson Spink | © 2024| Powered by Stark Expo Tech Exchange║
     ║    Type 'help' for available commands                                            ║
     ║ (🔍, ⚡, 🛡️) 🌐 ⚡ CLI Mode: {'ADMIN' if self.is_admin() else 'USER'}               
