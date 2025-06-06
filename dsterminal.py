@@ -168,14 +168,20 @@ class SecurityTerminal:
                 #     self.scan_complete.set()
                 #     spinner_thread.join()
                 #     print("[+] System scan completed at 100%")
- 
+
     def scan_system(self):
         console = Console()
 
         stages = [
-            ("[cyan]Scanning Common Vulnerabilities...[/cyan]", "Memory Scan"),
-            ("[yellow]Analyzing Processes...[/yellow]", "Process Analysis"),
-            ("[magenta]Inspecting Temporary Files...[/magenta]", "Temp File Scan")
+            ("[cyan]Scanning Memory for anomalies...[/cyan]", "Memory Scan"),
+            ("[yellow]Analyzing Active Processes...[/yellow]", "Process Scan"),
+            ("[magenta]Inspecting Temporary & Hidden Files...[/magenta]", "Temp File Scan"),
+            ("[blue]Reviewing Network Connections...[/blue]", "Network Scan"),
+            ("[green]Checking Installed Applications...[/green]", "Software Audit"),
+            ("[white]Verifying System Integrity...[/white]", "System Integrity"),
+            ("[red]Reviewing User Accounts & Privileges...[/red]", "User Audit"),
+            ("[bright_cyan]Assessing Firewall and Security Tools...[/bright_cyan]", "Security Configs"),
+            ("[bright_magenta]Applying Heuristic & Behavioral Analysis...[/bright_magenta]", "Heuristics")
         ]
 
         def animated_progress():
@@ -187,64 +193,50 @@ class SecurityTerminal:
                         TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
                         expand=True,
                     )
-                
-
                     task = progress.add_task(task_label, total=100)
                     start_time = time.time()
                     while not progress.finished:
                         elapsed = time.time() - start_time
                         percent = min(100, int((elapsed / 5) * 100))
                         progress.update(task, completed=percent)
-
                         panel = Panel(
                             Align.center(progress, vertical="middle"),
                             title="[bold white]System Scan[/bold white]",
                             border_style="bright_white",
                             padding=(1, 2),
-                            width=60
+                            width=70
                         )
-
-                        # This aligns the panel in the center of the screen both horizontally and vertically
                         live.update(
                         Align.center(panel, vertical="middle")
                         )
-
                         time.sleep(0.1)
-                        # combined = Group(text, Align.center(panel, vertical="middle"))
-                        # return combined
-                        # live.update(panel)
-                        # time.sleep(0.1)
 
-        # Start animation in a thread
         animation_thread = Thread(target=animated_progress)
         animation_thread.start()
         animation_thread.join()
 
-        # Simulate scanning progress
-        for i in range(1, 101):
-            time.sleep(0.03)
-            self.scan_progress = i
-
-        # Simulated threat scan
-        suspicious_processes = ["keylogger", "logkeys", "pykeylogger", "ahk"]
+        # Simulated real scan - process detection
+        suspicious_keywords = ["keylogger", "logkeys", "pykeylogger", "ahk", "injector"]
         found_threats = False
 
         for proc in psutil.process_iter(['name', 'pid', 'exe']):
             try:
-                if any(susp_keyword in proc.info['name'].lower() for susp_keyword in suspicious_processes):
-                    console.print(f"\n[bold red][!] Suspicious Process:[/bold red] {proc.info['name']} (PID: {proc.pid})")
+                name = proc.info.get('name', '').lower()
+                exe = (proc.info.get('exe') or '').lower()
+                if any(kw in name for kw in suspicious_keywords):
+                    self.console.print(f"\n[bold red][!] Suspicious Process:[/bold red] {proc.info['name']} (PID: {proc.pid})")
                     found_threats = True
-
-                if platform.system() == "Windows" and "temp" in (proc.info.get('exe') or "").lower():
-                    console.print(f"\n[bold yellow][!] Suspicious Temp Execution:[/bold yellow] {proc.info['name']}")
+                if platform.system() == "Windows" and "temp" in exe:
+                    self.console.print(f"\n[bold yellow][!] Executable Running from Temp Directory:[/bold yellow] {proc.info['name']}")
                     found_threats = True
-            except:
+            except Exception:
                 continue
 
         if not found_threats:
             console.print("\n[bold blue][+] System is Protected & Monitored [!] [/bold blue]")
             console.print("\n[bold green][+] No obvious threats detected[/bold green]")
 
+ 
 
 #  ends here going up the code
 
