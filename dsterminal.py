@@ -18,6 +18,7 @@ import ssl
 import subprocess
 import json
 import OpenSSL
+import argparse
 from cryptography.x509 import load_pem_x509_certificate
 from cryptography.x509.ocsp import OCSPRequestBuilder
 from threading import Thread, Event
@@ -31,7 +32,19 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.formatted_text import HTML
 from colorama import Fore, Style, init
 # from pyfiglet import figlet_format
+from pyfiglet import figlet_format
+import itertools
+from rich.console import Console, Group
+from rich.panel import Panel
+from rich.align import Align
+from rich.text import Text
+from rich.progress import Progress, BarColumn, TextColumn
+from rich.live import Live
 
+from threading import Thread
+from rich.console import Console
+from rich.layout import Layout
+# from rich.group import Group
 
 init(autoreset=True)
 
@@ -39,7 +52,7 @@ init(autoreset=True)
 # Configuration
 CONFIG = {
     'VT_API_KEY': '957166d424812a397e328022b84594a8c02757814f6c04518dce7e81179b4b79',
-    'UPDATE_URL': 'https://api.github.com/repos/starkexpotech/DSTerminal/releases/latest',
+    'UPDATE_URL': 'https://github.com/Stark-Expo-Tech-Exchange/DSTerminal_releases_latest.git',
     'LOG_FILE': 'secure_audit.log',
     'ENCRYPT_KEY': Fernet.generate_key().decode(),
     'CURRENT_VERSION': '2.0'
@@ -64,7 +77,7 @@ class SecurityTerminal:
             history=FileHistory('.dst_history'),
             auto_suggest=AutoSuggestFromHistory(),
             completer=WordCompleter([
-                'scan', 'netmon', 'harden', 'vtscan', 'regmon', 
+                'scan-sys', 'legitify', 'nikto', 'netmon', 'harden-sys', 'vtscan', 'regmon', 
                 'memdump', 'update', 'help', 'exit', 'clearlogs',
                 'portsweep', 'hashfile', 'sysinfo', 'killproc',
                 'chkintegrity', 'encrypt', 'decrypt', 'watchfolder',
@@ -72,7 +85,7 @@ class SecurityTerminal:
                 'sqlmap', 'ransomwatch', 'wificrack', 'stegcheck',
                 'certcheck', 'torify'
             ]),
-            bottom_toolbar=HTML('<b>DST</b> v{} | Mode: <style bg="{}">{}</style>').format(
+            bottom_toolbar=HTML('<b>DSTerminal</b> v{} | Mode: <style bg="{}">{}</style>').format(
                 CONFIG['CURRENT_VERSION'],
                 "ansired" if self.is_admin() else "ansigreen",
                 "ADMIN" if self.is_admin() else "USER"
@@ -93,7 +106,7 @@ class SecurityTerminal:
         ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
         
     ╠════════════════════════════════════════════════════════════════============══════╣
-    ║    Defensive Security Terminal v1.1 | {platform.system()} {platform.release()}   ║
+    ║    Defensive Security Terminal v2.0 | {platform.system()} {platform.release()}   ║
     ║    Developed by: Spark Wilson Spink | © 2024| Powered by Stark Expo Tech Exchange║
     ║    Type 'help' for available commands                                            ║
     ║ (🔍, ⚡, 🛡️) 🌐 ⚡ CLI Mode: {'ADMIN' if self.is_admin() else 'USER'}               
@@ -120,41 +133,122 @@ class SecurityTerminal:
             i = (i + 1) % 4
         sys.stdout.write("\r" + " " * 50 + "\r")
 
-    def scan_system(self):
-        self.scan_complete.clear()
-        self.scan_progress = 0
+    # def scan_system(self):
+    #     self.scan_complete.clear()
+    #     self.scan_progress = 0
         
-        spinner_thread = Thread(target=self._animate_scan)
-        spinner_thread.daemon = True
-        spinner_thread.start()
+    #     spinner_thread = Thread(target=self._animate_scan)
+    #     spinner_thread.daemon = True
+    #     spinner_thread.start()
 
-        try:
-            for i in range(1, 101):
-                time.sleep(0.03)
-                self.scan_progress = i
+    #     try:
+    #         for i in range(1, 101):
+    #             time.sleep(0.03)
+    #             self.scan_progress = i
             
-            suspicious_processes = ["keylogger", "logkeys", "pykeylogger", "ahk"]
-            found_threats = False
+    #         suspicious_processes = ["keylogger", "logkeys", "pykeylogger", "ahk"]
+    #         found_threats = False
             
-            for proc in psutil.process_iter(['name', 'pid', 'exe']):
-                try:
-                    if any(susp_keyword in proc.info['name'].lower() for susp_keyword in suspicious_processes):
-                        print(f"\n[!] Suspicious Process: {proc.info['name']} (PID: {proc.pid})")
-                        found_threats = True
+    #         for proc in psutil.process_iter(['name', 'pid', 'exe']):
+    #             try:
+    #                 if any(susp_keyword in proc.info['name'].lower() for susp_keyword in suspicious_processes):
+    #                     print(f"\n[!] Suspicious Process: {proc.info['name']} (PID: {proc.pid})")
+    #                     found_threats = True
                     
-                    if platform.system() == "Windows" and "temp" in proc.info.get('exe', '').lower():
-                        print(f"\n[!] Suspicious Temp Execution: {proc.info['name']}")
-                        found_threats = True
-                except:
-                    continue
+    #                 if platform.system() == "Windows" and "temp" in proc.info.get('exe', '').lower():
+    #                     print(f"\n[!] Suspicious Temp Execution: {proc.info['name']}")
+    #                     found_threats = True
+    #             except:
+    #                 continue
 
-            if not found_threats:
-                print("\n[+] No obvious threats detected")
-            
-        finally:
-            self.scan_complete.set()
-            spinner_thread.join()
-            print("[+] System scan completed at 100%")
+    #         if not found_threats:
+    #             print("\n[+] No obvious threats detected")
+
+                # finally:
+                #     self.scan_complete.set()
+                #     spinner_thread.join()
+                #     print("[+] System scan completed at 100%")
+ 
+    def scan_system(self):
+        console = Console()
+
+        stages = [
+            ("[cyan]Scanning Common Vulnerabilities...[/cyan]", "Memory Scan"),
+            ("[yellow]Analyzing Processes...[/yellow]", "Process Analysis"),
+            ("[magenta]Inspecting Temporary Files...[/magenta]", "Temp File Scan")
+        ]
+
+        def animated_progress():
+            with Live(console=console, refresh_per_second=10, screen=True) as live:
+                for stage_text, task_label in stages:
+                    progress = Progress(
+                        TextColumn(stage_text),
+                        BarColumn(bar_width=None),
+                        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                        expand=True,
+                    )
+                
+
+                    task = progress.add_task(task_label, total=100)
+                    start_time = time.time()
+                    while not progress.finished:
+                        elapsed = time.time() - start_time
+                        percent = min(100, int((elapsed / 5) * 100))
+                        progress.update(task, completed=percent)
+
+                        panel = Panel(
+                            Align.center(progress, vertical="middle"),
+                            title="[bold white]System Scan[/bold white]",
+                            border_style="bright_white",
+                            padding=(1, 2),
+                            width=60
+                        )
+
+                        # This aligns the panel in the center of the screen both horizontally and vertically
+                        live.update(
+                        Align.center(panel, vertical="middle")
+                        )
+
+                        time.sleep(0.1)
+                        # combined = Group(text, Align.center(panel, vertical="middle"))
+                        # return combined
+                        # live.update(panel)
+                        # time.sleep(0.1)
+
+        # Start animation in a thread
+        animation_thread = Thread(target=animated_progress)
+        animation_thread.start()
+        animation_thread.join()
+
+        # Simulate scanning progress
+        for i in range(1, 101):
+            time.sleep(0.03)
+            self.scan_progress = i
+
+        # Simulated threat scan
+        suspicious_processes = ["keylogger", "logkeys", "pykeylogger", "ahk"]
+        found_threats = False
+
+        for proc in psutil.process_iter(['name', 'pid', 'exe']):
+            try:
+                if any(susp_keyword in proc.info['name'].lower() for susp_keyword in suspicious_processes):
+                    console.print(f"\n[bold red][!] Suspicious Process:[/bold red] {proc.info['name']} (PID: {proc.pid})")
+                    found_threats = True
+
+                if platform.system() == "Windows" and "temp" in (proc.info.get('exe') or "").lower():
+                    console.print(f"\n[bold yellow][!] Suspicious Temp Execution:[/bold yellow] {proc.info['name']}")
+                    found_threats = True
+            except:
+                continue
+
+        if not found_threats:
+            console.print("\n[bold blue][+] System is Protected & Monitored [!] [/bold blue]")
+            console.print("\n[bold green][+] No obvious threats detected[/bold green]")
+
+
+#  ends here going up the code
+
+
 
     def network_monitor(self):
         print("\n[+] Monitoring network connections...")
@@ -173,22 +267,7 @@ class SecurityTerminal:
         for cve, desc in vulns.items():
             print(f"{cve}: {desc} - {'[!] VULNERABLE' if random.random() > 0.7 else '[+] Secure'}")
 
-    # def spoof_mac(self, interface="eth0"):
-    #     if self.is_admin():
-    #         new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
-    #             random.randint(0, 255),
-    #             random.randint(0, 255),
-    #             random.randint(0, 255),
-    #             random.randint(0, 255),
-    #             random.randint(0, 255)
-    #         )
-    #         os.system(f"sudo ifconfig {interface} down")
-    #         os.system(f"sudo ifconfig {interface} hw ether {new_mac}")
-    #         os.system(f"sudo ifconfig {interface} up")
-    #         print(f"[+] MAC spoofed to {new_mac}")
-    #     else:
-    #         print("[!] Requires admin privileges")
-
+    
     # BELOW MACSPOOF CODE WORKING
     def spoof_mac(self, interface=None):
         """Enhanced MAC spoofing with detailed debugging"""
@@ -586,130 +665,13 @@ class SecurityTerminal:
                 print("[+] No obvious steganography signatures detected")
         except Exception as e:
             print(f"[!] Error: {e}")
-
-
-# ====ssl check starts here
-    # # def check_ssl(self, domain=None):
-    #     """Enhanced SSL certificate checker with user input"""
-    #     if not domain:
-    #         domain = input("Enter domain to check (e.g., example.com): ").strip()
-    
-    #     print(f"\n[+] Checking SSL certificate for {domain}...")
-    
-    #     try:
-    #     # Set timeout (10 seconds)
-    #         socket.setdefaulttimeout(10)
-        
-    #     # Create secure context
-    #         context = ssl.create_default_context()
-    #         context.check_hostname = True
-        
-    #         with socket.create_connection((domain, 443)) as sock:
-    #             with context.wrap_socket(sock, server_hostname=domain) as ssock:
-    #                 cert = ssock.getpeercert()
-    #                 cipher = ssock.cipher()
-    #                 protocol = ssock.version()
-                
-    #             # Certificate details
-    #                 issuer = dict(x[0] for x in cert['issuer'])
-    #                 subject = dict(x[0] for x in cert['subject'])
-    #                 expires = datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
-    #                 valid_days = (expires - datetime.now()).days
-                
-    #             # Print full report
-    #                 print("\n╔" + "═"*50 + "╗")
-    #                 print(f"║ {'SSL Certificate Report':^48} ║")
-    #                 print("╠" + "═"*50 + "╣")
-    #                 print(f"║ {'Domain:':<15} {domain:<33} ║")
-    #                 print(f"║ {'Issuer:':<15} {issuer.get('organizationName', 'Unknown'):<33} ║")
-    #                 print(f"║ {'Subject:':<15} {subject.get('commonName', 'Unknown'):<33} ║")
-    #                 print(f"║ {'Expires:':<15} {expires.strftime('%Y-%m-%d')} ({valid_days} days left) ║")
-    #                 print(f"║ {'Protocol:':<15} {protocol:<33} ║")
-    #                 print(f"║ {'Cipher:':<15} {cipher[0]:<33} ║")
-    #                 print("╚" + "═"*50 + "╝")
-                
-    #             # Additional warnings
-    #                 if valid_days < 30:
-    #                     print("[!] WARNING: Certificate expires soon!")
-    #                 if 'SHA1' in str(cert):
-    #                     print("[!] WARNING: Using weak SHA-1 signature")
-                    
-    #     except ssl.SSLCertVerificationError as e:
-    #         print(f"[!] Certificate verification failed: {e}")
-    #     except socket.timeout:
-    #         print("[!] Connection timed out")
-    #     except Exception as e:
-    #         print(f"[!] SSL check failed: {e}")
-
-    # def check_ssl(self, domain=None):
-    #     """Comprehensive SSL certificate analyzer with export options"""
-    #     if not domain:
-    #         domain = input("Enter domain to check (e.g., example.com): ").strip()
-    
-    #     print(f"\n[+] Analyzing SSL certificate for {domain}...")
-    
-    #     try:
-    #     # Configure enhanced SSL context
-    #         context = ssl.create_default_context()
-    #         context.check_hostname = True
-    #         context.verify_mode = ssl.CERT_REQUIRED
-    #         context.load_default_certs()
-        
-    #     # Set timeout and create connection
-    #         socket.setdefaulttimeout(10)
-        
-    #         with socket.create_connection((domain, 443)) as sock:
-    #             with context.wrap_socket(sock, server_hostname=domain) as ssock:
-    #                 cert = ssock.getpeercert(binary_form=True)
-    #                 x509 = ssl.DER_cert_to_PEM_cert(cert)
-    #                 cert_obj = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, x509)
-                
-    #             # Get certificate details
-    #                 issuer = dict(x[0] for x in ssock.getpeercert()['issuer'])
-    #                 subject = dict(x[0] for x in ssock.getpeercert()['subject'])
-    #                 expires = datetime.strptime(ssock.getpeercert()['notAfter'], '%b %d %H:%M:%S %Y %Z')
-    #                 valid_days = (expires - datetime.now()).days
-                
-    #             # Get certificate chain
-    #                 chain = []
-    #                 for idx, cert_der in enumerate(ssock.getpeercert_chain() or []):
-    #                     cert_pem = ssl.DER_cert_to_PEM_cert(cert_der)
-    #                     chain_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-    #                     chain.append({
-    #                         'subject': dict(chain_cert.get_subject().get_components()),
-    #                         'issuer': dict(chain_cert.get_issuer().get_components()),
-    #                         'expires': chain_cert.get_notAfter().decode('utf-8'),
-    #                         'serial': chain_cert.get_serial_number(),
-    #                         'version': chain_cert.get_version() + 1
-    #                     })
-                
-    #             # Check OCSP revocation status (requires requests)
-    #                 ocsp_status = self._check_ocsp(cert_obj, chain[0] if len(chain) > 0 else None)
-                
-    #             # Print comprehensive report
-    #                 self._print_ssl_report(domain, ssock, cert_obj, chain, ocsp_status, valid_days)
-                
-    #             # Export option
-    #                 if input("\nExport results to file? (y/N): ").lower() == 'y':
-    #                     self._export_ssl_results(domain, ssock, cert_obj, chain)
-    
-    #     except ssl.SSLError as e:
-    #         print(f"[!] SSL Error: {e}")
-    #     except socket.timeout:
-    #         print("[!] Connection timed out")
-    #     except Exception as e:
-    #         print(f"[!] Analysis failed: {str(e)}")
-
+  
     def check_ssl(self, domain=None):
         """Comprehensive SSL certificate analyzer with export options"""
         try:
-            import OpenSSL
-            import ssl
-            import socket
-            from datetime import datetime
-        
+           
             if not domain:
-                domain = input("Enter domain to check (e.g., example.com): ").strip()
+                domain = input("Enter domain to check (e.g., starkexpo.com): ").strip()
                 if not domain:
                     print("[!] No domain provided")
                     return
@@ -909,7 +871,7 @@ class SecurityTerminal:
     def check_updates(self):
         """Check for DST updates"""
         try:
-            response = requests.get(CONFIG['https://github.com/Stark-Expo-Tech-Exchange/DSTerminal.git'])
+            response = requests.get(CONFIG['https://github.com/Stark-Expo-Tech-Exchange/DSTerminal_releases_latest.git'])
             latest = response.json()
             if latest['tag_name'] > CONFIG['CURRENT_VERSION']:
                 return f"Update available: {latest['tag_name']}\nDownload: {latest['html_url']}"
@@ -918,72 +880,7 @@ class SecurityTerminal:
         except Exception as e:
             return f"Update check failed: {e}"
 
-    # def vt_scan_menu(self):
-    #     """VirusTotal file scanning interface"""
-    #     print("\n[VirusTotal Scanner]")
-    #     print("1. Hash lookup")
-    #     print("2. File scan")
-    #     choice = input("Select option: ")
-        
-    #     if choice == "1":
-    #         file_hash = input("Enter file hash: ")
-    #         self.vt_hash_lookup(file_hash)
-    #     elif choice == "2":
-    #         file_path = input("File path to scan: ")
-    #         self.vt_file_scan(file_path)
-    #     else:
-    #         print("[!] Invalid choice")
-
-    # def vt_hash_lookup(self, file_hash):
-    #     """Check file hash against VirusTotal"""
-    #     if not CONFIG['VT_API_KEY'] or CONFIG['VT_API_KEY'] == 'YOUR_VIRUSTOTAL_API_KEY':
-    #         print("[!] Configure your VirusTotal API key first")
-    #         return
-
-    #     try:
-    #         url = f"https://www.virustotal.com/api/v3/files/{file_hash}"
-    #         headers = {"x-apikey": CONFIG['VT_API_KEY']}
-    #         response = requests.get(url, headers=headers)
-            
-    #         if response.status_code == 200:
-    #             result = response.json()
-    #             stats = result['data']['attributes']['last_analysis_stats']
-    #             print(f"\n[+] Detection: {stats['malicious']}/{sum(stats.values())}")
-    #             print(f"First submitted: {result['data']['attributes']['first_submission_date']}")
-    #         else:
-    #             print("[!] Hash not found in VirusTotal")
-    #     except Exception as e:
-    #         print(f"[!] Error: {e}")
-
-    # def vt_file_scan(self, file_path):
-    #     """Upload file to VirusTotal"""
-    #     if not os.path.exists(file_path):
-    #         print("[!] File not found")
-    #         return
-
-    #     if not CONFIG['VT_API_KEY'] or CONFIG['VT_API_KEY'] == 'YOUR_VIRUSTOTAL_API_KEY':
-    #         print("[!] Configure your VirusTotal API key first")
-    #         return
-
-    #     try:
-    #         url = "https://www.virustotal.com/api/v3/files"
-    #         headers = {"x-apikey": CONFIG['VT_API_KEY']}
-            
-    #         with open(file_path, 'rb') as f:
-    #             files = {'file': (os.path.basename(file_path), f)}
-    #             response = requests.post(url, headers=headers, files=files)
-            
-    #         if response.status_code == 200:
-    #             result = response.json()
-    #             print(f"\n[+] Scan ID: {result['data']['id']}")
-    #             print("Check results later at: https://www.virustotal.com")
-    #         else:
-    #             print("[!] Upload failed")
-    #     except Exception as e:
-    #         print(f"[!] Error: {e}")
-
-    #         # =========Special code for vtscan below
-    
+  
     def vt_scan_menu(self):
         """Enhanced VirusTotal scanning interface"""
         print("\n[VirusTotal Scanner]")
@@ -1296,417 +1193,173 @@ class SecurityTerminal:
                 return "[+] No suspicious registry entries found"
         except Exception as e:
             return f"[!] Registry scan failed: {e}"
-
-    # def harden_system(self):
-    #     """Apply basic security hardening"""
-    #     if not self.is_admin():
-    #         print("[!] Requires admin privileges")
-    #         return
-
-    #     print("\n[+] Applying security hardening...")
-    #     try:
-    #         if platform.system() == "Windows":
-    #             # Disable SMBv1
-    #             os.system("Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol")
-    #             # Enable Windows Defender
-    #             os.system("Set-MpPreference -DisableRealtimeMonitoring $false")
-    #             print("[+] Windows hardening applied")
-    #         else:
-    #             # Disable root login via SSH
-    #             os.system("sudo sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config")
-    #             # Enable firewall
-    #             os.system("sudo ufw enable")
-    #             print("[+] Linux hardening applied")
-    #     except Exception as e:
-    #         print(f"[!] Error: {e}")
+ 
 
 
-
-# UNCOMMENT GOING UP NOT BELOW
-
-    # def harden_system(self):
-    #     """Apply comprehensive security hardening based on platform"""
-    #     if not self.is_admin():
-    #         print("[!] Requires admin privileges")
-    #         return
-
-    #     print("\n[+] Applying security hardening...")
-    
-    #     try:
-    #         if platform.system() == "Windows":
-    #             self._harden_windows()
-    #         elif platform.system() == "Linux":
-    #             self._harden_linux()
-    #         elif platform.system() == "Darwin":
-    #             self._harden_macos()
-    #         else:
-    #             print("[!] Unsupported operating system")
-    #     except Exception as e:
-    #         print(f"[!] Error during hardening: {str(e)}")
-
-    # def _harden_windows(self):
-    #     """Windows-specific hardening measures"""
-    #     print("\n=== Windows Hardening ===")
-    
-    # # Disable insecure protocols
-    #     os.system("powershell Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
-    #     os.system("powershell Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\SSL 2.0\\Server' -Name Enabled -Value 0 -Type DWord")
-    
-    # # Enable security features
-    #     os.system("powershell Set-MpPreference -DisableRealtimeMonitoring $false")
-    #     os.system("powershell Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True")
-    
-    # # Configure User Account Control
-    #     os.system("powershell Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System -Name ConsentPromptBehaviorAdmin -Value 2")
-    
-    # # Disable LLMNR (Link-Local Multicast Name Resolution)
-    #     os.system("powershell Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast -Value 0")
-    
-    #     print("[+] Windows hardening applied. Reboot recommended for some changes.")
-
-    # def _harden_linux(self):
-    #     """Linux-specific hardening measures"""
-    #     print("\n=== Linux Hardening ===")
-    
-    # # SSH hardening
-    #     os.system("sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config")
-    #     os.system("sudo sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config")
-    
-    # # Firewall configuration
-    #     os.system("sudo ufw --force enable")
-    #     os.system("sudo ufw default deny incoming")
-    #     os.system("sudo ufw default allow outgoing")
-    
-    # # Kernel hardening
-    #     os.system("sudo sysctl -w kernel.kptr_restrict=2")
-    #     os.system("sudo sysctl -w kernel.dmesg_restrict=1")
-    
-    # # Disable core dumps
-    #     os.system("sudo echo '* hard core 0' >> /etc/security/limits.conf")
-    
-    # # Restart services
-    #     os.system("sudo systemctl restart sshd")
-    #     print("[+] Linux hardening applied. Some changes require reboot.")
-
-    # def _harden_macos(self):
-    #     """macOS-specific hardening measures"""
-    #     print("\n=== macOS Hardening ===")
-    
-    # # Enable firewall
-    #     os.system("sudo defaults write /Library/Preferences/com.apple.alf globalstate -int 1")
-    
-    # # Disable remote login
-    #     os.system("sudo systemsetup -setremotelogin off")
-    
-    # # Enable SIP (System Integrity Protection)
-    #     os.system("sudo csrutil enable")
-    
-    # # Disable Bonjour advertising
-    #     os.system("sudo defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool YES")
-    
-    #     print("[+] macOS hardening applied. Some changes require reboot.")
-
-    # def is_admin(self):
-    #     """Check for administrator privileges"""
-    #     try:
-    #         if platform.system() == "Windows":
-    #             import ctypes
-    #             return ctypes.windll.shell32.IsUserAnAdmin() != 0
-    #         else:
-    #             return os.getuid() == 0
-    #     except:
-    #         return False
-
-
-
-
-    # def harden_system(self, dry_run=False, rollback=False):
-    #     """
-    #     Apply comprehensive system hardening with logging and rollback support
-    #     Usage:
-    #     - harden_system              # Apply hardening
-    #     - harden_system --dry-run    # Preview changes
-    #     - harden_system --rollback   # Revert changes
-    #     """
-    #     if not self.is_admin():
-    #         print("[!] Requires admin privileges")
-    #         return
-
-    #     # Setup logging
-    #     logging.basicConfig(
-    #         filename='security_harden.log',
-    #         level=logging.INFO,
-    #         format='%(asctime)s - %(message)s'
-    #     )
-
-    #     if rollback:
-    #         self._rollback_hardening()
-    #         return
-
-    #     print(f"\n[+] {'Simulating' if dry_run else 'Applying'} security hardening...")
-    #     start_time = datetime.now()
-    #     logging.info(f"Hardening started at {start_time}")
-
-    #     try:
-    #         if platform.system() == "Windows":
-    #             self._harden_windows(dry_run)
-    #         elif platform.system() == "Linux":
-    #             self._harden_linux(dry_run)
-    #         elif platform.system() == "Darwin":
-    #             self._harden_macos(dry_run)
-    #         else:
-    #             print("[!] Unsupported operating system")
-    #     except Exception as e:
-    #         logging.error(f"Hardening failed: {str(e)}")
-    #         print(f"[!] Error: {e}")
-    #     finally:
-    #         duration = datetime.now() - start_time
-    #         logging.info(f"Hardening completed in {duration.total_seconds():.2f} seconds")
-    #         print(f"\n[+] Hardening completed in {duration.total_seconds():.2f} seconds")
-
-    # def _harden_windows(self, dry_run):
-    #     """Windows-specific hardening measures"""
-    #     steps = [
-    #         ("Disabling SMBv1", "Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart"),
-    #         ("Disabling LLMNR", "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast -Value 0"),
-    #         ("Enabling Windows Defender", "Set-MpPreference -DisableRealtimeMonitoring $false"),
-    #         ("Configuring Firewall", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True"),
-    #         ("Enabling UAC", "Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System -Name ConsentPromptBehaviorAdmin -Value 2"),
-    #         ("Disabling WDigest", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest' -Name UseLogonCredential -Value 0"),
-    #     ]
-
-    #     print("\n=== Windows Hardening ===")
-    #     for desc, cmd in tqdm(steps, desc="Windows Hardening"):
-    #         logging.info(f"Attempting: {desc}")
-    #         if not dry_run:
-    #             os.system(f"powershell {cmd}")
-    #         print(f"  {desc} {'(simulated)' if dry_run else ''}")
-
-    # def _harden_linux(self, dry_run):
-    #     """Linux-specific hardening measures"""
-    #     steps = [
-    #         ("Disabling root SSH", "sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config"),
-    #         ("Disabling SSH passwords", "sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config"),
-    #         ("Enabling UFW", "ufw --force enable"),
-    #         ("Configuring UFW defaults", "ufw default deny incoming && ufw default allow outgoing"),
-    #         ("Hardening kernel", "sysctl -w kernel.kptr_restrict=2 && sysctl -w kernel.dmesg_restrict=1"),
-    #         ("Disabling core dumps", "echo '* hard core 0' >> /etc/security/limits.conf"),
-    #         ("Restarting SSH", "systemctl restart sshd"),
-    #     ]
-
-    #     print("\n=== Linux Hardening ===")
-    #     for desc, cmd in tqdm(steps, desc="Linux Hardening"):
-    #         logging.info(f"Attempting: {desc}")
-    #         if not dry_run:
-    #             os.system(f"sudo {cmd}")
-    #         print(f"  {desc} {'(simulated)' if dry_run else ''}")
-
-    # def _harden_macos(self, dry_run):
-    #     """macOS-specific hardening measures"""
-    #     steps = [
-    #         ("Enabling firewall", "defaults write /Library/Preferences/com.apple.alf globalstate -int 1"),
-    #         ("Disabling remote login", "systemsetup -setremotelogin off"),
-    #         ("Enabling SIP", "csrutil enable"),
-    #         ("Disabling Bonjour", "defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool YES"),
-    #         ("Disabling guest account", "defaults write /Library/Preferences/com.apple.loginwindow GuestEnabled -bool NO"),
-    #     ]
-
-    #     print("\n=== macOS Hardening ===")
-    #     for desc, cmd in tqdm(steps, desc="macOS Hardening"):
-    #         logging.info(f"Attempting: {desc}")
-    #         if not dry_run:
-    #             os.system(f"sudo {cmd}")
-    #         print(f"  {desc} {'(simulated)' if dry_run else ''}")
-
-    # def _rollback_hardening(self):
-    #     """Revert hardening changes using log file"""
-    #     print("\n[+] Rolling back hardening changes...")
-        
-    #     try:
-    #         with open('security_harden.log', 'r') as f:
-    #             logs = f.read()
-            
-    #         revert_actions = {
-    #             "Windows": [
-    #                 ("Re-enabling SMBv1", "Enable-WindowsOptionalFeature -Online -FeatureName smb1protocol"),
-    #                 ("Resetting LLMNR", "Remove-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient' -Name EnableMulticast"),
-    #             ],
-    #             "Linux": [
-    #                 ("Re-enabling root SSH", "sed -i 's/^PermitRootLogin.*/#PermitRootLogin yes/' /etc/ssh/sshd_config"),
-    #                 ("Re-enabling SSH passwords", "sed -i 's/^PasswordAuthentication.*/#PasswordAuthentication yes/' /etc/ssh/sshd_config"),
-    #             ],
-    #             "Darwin": [
-    #                 ("Resetting firewall", "defaults write /Library/Preferences/com.apple.alf globalstate -int 0"),
-    #                 ("Re-enabling remote login", "systemsetup -setremotelogin on"),
-    #             ]
-    #         }
-
-    #         platform_specific = platform.system()
-    #         if platform_specific in revert_actions:
-    #             for desc, cmd in tqdm(revert_actions[platform_specific], desc=f"Reverting {platform_specific}"):
-    #                 print(f"  {desc}")
-    #                 if platform_specific == "Windows":
-    #                     os.system(f"powershell {cmd}")
-    #                 else:
-    #                     os.system(f"sudo {cmd}")
-            
-    #         print("[+] Rollback completed. Some changes may require reboot.")
-    #     except FileNotFoundError:
-    #         print("[!] No hardening log found. Manual revert required.")
-
-    # def is_admin(self):
-    #     """Check for administrator privileges"""
-    #     try:
-    #         if platform.system() == "Windows":
-    #             import ctypes
-    #             return ctypes.windll.shell32.IsUserAnAdmin() != 0
-    #         else:
-    #             return os.getuid() == 0
-    #     except:
-    #         return False
-
-    # new hardening animated code below
-    # def _cyber_attack_simulation(self):
-    #     """Simulate incoming attacks being blocked"""
-    #     attacks = [
-    #         ("Brute Force Attempt", "SSH", "222.185.103.66"),
-    #         ("SQL Injection", "HTTP", "91.218.114.21"),
-    #         ("Zero-Day Exploit", "HTTPS", "185.143.223.47")
-    #     ]
-        
-    #     print(f"\n{Fore.RED}▄︻デ══━  INTRUSION DETECTED  ══━︻▄{Style.RESET_ALL}")
-    #     for attack, protocol, ip in attacks:
-    #         time.sleep(random.uniform(0.3, 0.7))
-    #         print(f"{Fore.YELLOW}▶ {ip} | {protocol} | {attack}{Style.RESET_ALL}", end='')
-    #         time.sleep(random.uniform(0.5, 1.2))
-    #         print(f"\r{Fore.GREEN}✓ {ip} | {protocol} | {attack} {Fore.BLACK}▶ BLOCKED{Style.RESET_ALL}")
-
-    # def _network_scan_animation(self):
-    #     """Simulate network scanning visualization"""
-    #     print(f"\n{Fore.CYAN}═════════⋘ NETWORK TOPOLOGY ⋙═════════{Style.RESET_ALL}")
-    #     devices = [
-    #         ("Router", "192.168.1.1", "Cisco IOS"),
-    #         ("Workstation", "192.168.1.15", "Windows 11"),
-    #         ("Server", "192.168.1.100", "Ubuntu 22.04")
-    #     ]
-        
-    #     for device, ip, os in devices:
-    #         print(f"{Fore.MAGENTA}⌖ {device}: {ip}", end='')
-    #         for _ in range(3):
-    #             print(".", end='', flush=True)
-    #             time.sleep(0.3)
-    #         print(f" {Fore.WHITE}[{os}]{Style.RESET_ALL}")
-
-    # def _vulnerability_scan(self):
-    #     """Simulated vulnerability assessment"""
-    #     vulns = [
-    #         ("CVE-2023-1234", "Critical", "SMB Protocol"),
-    #         ("CVE-2022-4567", "High", "OpenSSL"),
-    #         ("CVE-2021-8910", "Medium", "Linux Kernel")
-    #     ]
-        
-    #     print(f"\n{Fore.RED}▄︻デ══━ VULNERABILITY SCAN ══━︻▄{Style.RESET_ALL}")
-    #     for cve, severity, component in vulns:
-    #         time.sleep(0.5)
-    #         print(f"{severity.upper().ljust(8)} {cve} → {component}")
-    #         time.sleep(0.3)
-    #     print(f"{Fore.GREEN}✓ {len(vulns)} vulnerabilities patched{Style.RESET_ALL}")
-
-    # def _matrix_rain(self, duration=2):
-    #     """Simulate matrix-style code rain"""
-    #     chars = "01アイウエオカキクケコ"
-    #     width = os.get_terminal_size().columns
-    #     end_time = time.time() + duration
-        
-    #     print(f"{Fore.GREEN}", end='')
-    #     while time.time() < end_time:
-    #         print(''.join(random.choice(chars) for _ in range(width)))
-    #         time.sleep(0.08)
-    #     print(Style.RESET_ALL, end='')
-
-    # def harden_system(self, dry_run=False):
-    #     """Full cinematic hardening experience"""
-    #     self._print_banner("CYBER DEFENSE")
-    #     self._matrix_rain(1.5)
-        
-    #     # Phase 1: Reconnaissance
-    #     self._hacking_animation("Initializing Threat Assessment", 2)
-    #     self._network_scan_animation()
-        
-    #     # Phase 2: Vulnerability Detection
-    #     self._hacking_animation("Scanning Exploit Database", 3)
-    #     self._vulnerability_scan()
-        
-    #     # Phase 3: Attack Simulation
-    #     self._cyber_attack_simulation()
-        
-    #     # Phase 4: Actual Hardening
-    #     if dry_run:
-    #         self._hacking_animation("Simulating Countermeasures", 4)
-    #     else:
-    #         self._hacking_animation("Deploying Cyber Armor", 4)
-    #         if platform.system() == "Windows":
-    #             os.system("powershell Enable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
-    #         # ... (actual hardening commands)
-
-    #     # Final cinematic
-    #     self._matrix_rain(1)
-    #     print(f"\n{Fore.GREEN}▄︻デ══━ SYSTEM FORTIFICATION COMPLETE ══━︻▄{Style.RESET_ALL}")
-    #     print(f"{Fore.YELLOW} Firewall Active | Intrusion Prevention Engaged | Threat Level: {random.randint(1, 5)}/10{Style.RESET_ALL}")
-
-    # def _print_banner(self, text):
-    #     """Display hacking-style banner"""
-    #     try:
-    #         colors = [Fore.RED, Fore.GREEN, Fore.YELLOW, Fore.BLUE, Fore.MAGENTA, Fore.CYAN]
-    #         print(f"\n{random.choice(colors)}{figlet_format(text, font='slant')}{Style.RESET_ALL}")
-    #     except:
-    #         print(f"\n=== {text.upper()} ===\n")
+    #  starts here
 
     def _print_banner(self, text):
         """Display hacking-style banner with fallback"""
         try:
-        # Check if pyfiglet is available
-            from pyfiglet import figlet_format
             ascii_art = figlet_format(text, font='slant')
-        
-        # Check if colors are supported
             if os.environ.get('TERM') and 'color' in os.environ.get('TERM', ''):
                 colors = [Fore.RED, Fore.GREEN, Fore.YELLOW, Fore.BLUE, Fore.MAGENTA, Fore.CYAN]
-                print(f"\n{random.choice(colors)}{ascii_art}{Style.RESET_ALL}")
+                flicker = random.choice(colors) + ascii_art.replace(random.choice(text), '▒') + Style.RESET_ALL
+                print(f"\n{flicker}")
             else:
-                print(f"\n{ascii_art}")
+                # print(f"\n{ascii_art}")
+                print(f"\n")
         except ImportError:
-        # Fallback simple banner
             border = "═" * (len(text) + 4)
-            print(f"\n{border}")
-            print(f"  {text.upper()}  ")
-            print(f"{border}\n")
+            print(f"\n")
+            # print(f"\n{border}\n  {text.upper()}  \n{border}\n")
+
         except Exception as e:
             print(f"\n=== {text.upper()} ===\n")
-            # delete above code if any error========================
 
-    def _hacking_animation(self, message, duration=3):
-        """Show animated hacking simulation"""
-        symbols = ["⣾","⣽","⣻","⢿","⡿","⣟","⣯","⣷"]
-        end_time = time.time() + duration
-        print(f"\n{Fore.CYAN}[*] {message}", end='')
+    # uncomment below code if there is any error---starts here
+    # def _hacking_animation(self, message, duration=15):
+    #     """Show animated hacking simulation with rotating vector-style objects"""
+    #     vectors = [
+    #         ["[■]", "[▲]", "[●]", "[◆]"],  # rotating shield
+    #         ["{X}", "{/}", "{|}", "{\\}"],  # spinning firewall
+    #         ["(☠)", "(☢)", "(⚠)", "(☣)"],  # rotating danger signs
+    #         ["<->", "<=>", "<#>", "<*>"],   # data packet/malware flow
+    #         ["[∞]", "[¤]", "[§]", "[%]"]    # encryption chaos
+    #     ]
+
+    #     obj1 = random.choice(vectors)
+    #     obj2 = random.choice([v for v in vectors if v != obj1])
+
+    #     end_time = time.time() + duration
+    #     print(f"\n{Fore.CYAN}[*] {message}", end='')
+
+    #     i = 0
+    #     while time.time() < end_time:
+    #         sym1 = obj1[i % len(obj1)]
+    #         sym2 = obj2[i % len(obj2)]
+    #         print(f"\r{Fore.CYAN}[*] {message} {sym1} {sym2}{Style.RESET_ALL}", end='')
+    #         time.sleep(0.15)
+    #         i += 1
+    #     print()
+    # ends here uncomment above code
+
+
+ 
+    # def _hacking_animation(duration, graphics):
+    #     console = Console()
+    #     symbols = list("⚙⧈⧫◎◉▣⛏⊠⊞⌁⍟☍█▓▒░▌▎#@$=%/\\*~^↯⎈⛶∞∴∵")
         
-        while time.time() < end_time:
-            for symbol in symbols:
-                print(f"\r{Fore.CYAN}[*] {message} {symbol}{Style.RESET_ALL}", end='')
-                time.sleep(0.1)
-        print()
+
+        # class RotatingSymbol:
+        #     def __init__(self):
+        #         self.frames = random.sample(symbols, k=4)
+        #         self.frame_iter = itertools.cycle(self.frames)
+        #         self.color = random.choice(["cyan", "magenta", "green", "yellow", "red", "blue", "bright_white"])
+
+        #     def next(self):
+        #         symbol = next(self.frame_iter)
+        #         self.color = random.choice(["cyan", "magenta", "green", "yellow", "red", "blue", "bright_white"])
+        #         return Text(symbol, style=self.color)
+
+        # rows, cols = 5, 100
+        # symbol_grid = [[RotatingSymbol() for _ in range(cols)] for _ in range(rows)]
+
+        # def render():
+        #     text = Text()
+        #     for row in symbol_grid:
+        #         for symbol in row:
+        #             text.append(symbol.next())
+        #         text.append("\n")
+        #     return text
+
+        # start_time = time.time()
+        # duration = 15  # seconds
+
+        # with Live(render(), console=console, refresh_per_second=10) as live:
+        #     try:
+        #         while time.time() - start_time < duration:
+        #             time.sleep(0.1)
+        #             live.update(render())
+        #     except KeyboardInterrupt:
+        #         console.print("\n[bold red]Animation interrupted.[/bold red]")
+    def _hacking_animation(duration, graphics):
+        console = Console()
+        symbols = list("▣⚙⧫◎◉⛏⊠⊞⌁⍟☍█▓▒░▌▎#@$=%/\\*~^↯⎈⛶∞∴∵")
+
+        class RotatingSymbol:
+            def __init__(self):
+                self.frames = random.sample(symbols, k=4)
+                self.frame_iter = itertools.cycle(self.frames)
+                self.color = random.choice(["cyan", "magenta", "green", "yellow", "red", "blue", "bright_white"])
+
+            def next(self):
+                symbol = next(self.frame_iter)
+                self.color = random.choice(["cyan", "magenta", "green", "yellow", "red", "blue", "bright_white"])
+                return Text(symbol, style=self.color)
+
+        rows, cols = 5, 150
+        symbol_grid = [[RotatingSymbol() for _ in range(cols)] for _ in range(rows)]
+
+    # Progress bar setup
+        progress = Progress(
+            TextColumn("[bold green]HARDENING...[/bold green]"),
+            BarColumn(bar_width=None),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            expand=False,
+        )
+        task = progress.add_task("HARDENING", total=100)
+
+        start_time = time.time()
+        duration = 15  # seconds
+
+        def render():
+        # Background grid
+            text = Text()
+            for row in symbol_grid:
+                for symbol in row:
+                    text.append(symbol.next())
+                text.append("\n")
+
+        # Centered panel with progress bar
+            elapsed = time.time() - start_time
+            percent = min(100, int((elapsed / duration) * 100))
+            progress.update(task, completed=percent)
+
+            panel = Panel(
+                Align.center(progress, vertical="middle"),
+                title="[bold cyan]System Hardening Phase [1, 2 & 3][/bold cyan]",
+                border_style="bright_white",
+                width=40,
+                padding=(1, 2),
+            )
+
+
+            combined = Group(text, Align.center(panel, vertical="middle"))
+            return combined
+
+        with Live(render(), console=console, refresh_per_second=10, screen=True) as live:
+            try:
+                while time.time() - start_time < duration:
+                    time.sleep(0.1)
+                    live.update(render())
+            except KeyboardInterrupt:
+                console.print("\n[bold red]Animation interrupted.[/bold red]")
+
+        console.print("[bold green]✓ Access Granted.[/bold green]")
+
+
 
     def _cyber_attack_simulation(self):
-        """Simulate incoming attacks being blocked"""
-        attacks = [
-            ("Brute Force Attempt", "SSH", "222.185.103.66"),
-            ("SQL Injection", "HTTP", "91.218.114.21"),
-            ("Zero-Day Exploit", "HTTPS", "185.143.223.47")
-        ]
-        
+        """Simulate incoming attacks being blocked (randomized)"""
+        attack_types = ["Brute Force", "SQL Injection", "XSS", "RCE", "Zero-Day"]
+        protocols = ["SSH", "HTTP", "HTTPS", "FTP", "SMTP"]
+
         print(f"\n{Fore.RED}▄︻デ══━ INTRUSION DETECTED ══━︻▄{Style.RESET_ALL}")
-        for attack, protocol, ip in attacks:
+        for _ in range(random.randint(3, 5)):
+            attack = random.choice(attack_types)
+            protocol = random.choice(protocols)
+            ip = ".".join(str(random.randint(1, 255)) for _ in range(4))
             time.sleep(random.uniform(0.3, 0.7))
             print(f"{Fore.YELLOW}▶ {ip} | {protocol} | {attack}{Style.RESET_ALL}", end='')
             time.sleep(random.uniform(0.5, 1.2))
@@ -1720,22 +1373,25 @@ class SecurityTerminal:
             ("Workstation", "192.168.1.15", "Windows 11"),
             ("Server", "192.168.1.100", "Ubuntu 22.04")
         ]
-        
-        for device, ip, os in devices:
+
+        for device, ip, osys in devices:
             print(f"{Fore.MAGENTA}⌖ {device}: {ip}", end='')
             for _ in range(3):
                 print(".", end='', flush=True)
                 time.sleep(0.3)
-            print(f" {Fore.WHITE}[{os}]{Style.RESET_ALL}")
+            print(f" {Fore.WHITE}[{osys}]{Style.RESET_ALL}")
 
     def _vulnerability_scan(self):
-        """Simulated vulnerability assessment"""
-        vulns = [
+        """Simulated vulnerability assessment with randomized output"""
+        sample_vulns = [
             ("CVE-2023-1234", "Critical", "SMB Protocol"),
             ("CVE-2022-4567", "High", "OpenSSL"),
-            ("CVE-2021-8910", "Medium", "Linux Kernel")
+            ("CVE-2021-8910", "Medium", "Linux Kernel"),
+            ("CVE-2020-4455", "Low", "Apache Server"),
+            ("CVE-2019-1111", "Critical", "Docker")
         ]
-        
+        vulns = random.sample(sample_vulns, k=random.randint(2, 4))
+
         print(f"\n{Fore.RED}▄︻デ══━ VULNERABILITY SCAN ══━︻▄{Style.RESET_ALL}")
         for cve, severity, component in vulns:
             time.sleep(0.5)
@@ -1744,103 +1400,17 @@ class SecurityTerminal:
         print(f"{Fore.GREEN}✓ {len(vulns)} vulnerabilities patched{Style.RESET_ALL}")
 
     def _matrix_rain(self, duration=2):
-        """Simulate matrix-style code rain"""
-        chars = "01アイウエオカキクケコ"
+        """Simulate matrix-style code rain with hacker symbols"""
+        chars = "!@#$%^&*<>?+=-|/\\[]{}⧫◇◆⊞⊠✶✸▣⛏⚔⛓⌁"
         width = os.get_terminal_size().columns
         end_time = time.time() + duration
-        
+
         print(f"{Fore.GREEN}", end='')
         while time.time() < end_time:
             print(''.join(random.choice(chars) for _ in range(width)))
             time.sleep(0.08)
         print(Style.RESET_ALL, end='')
 
-    # def harden_system(self, dry_run=False):
-    #     """Full cinematic hardening experience"""
-    #     self._print_banner("CYBER DEFENSE")
-    #     self._matrix_rain(1.5)
-        
-    #     # Phase 1: Reconnaissance
-    #     self._hacking_animation("Initializing Threat Assessment", 2)
-    #     self._network_scan_animation()
-        
-    #     # Phase 2: Vulnerability Detection
-    #     self._hacking_animation("Scanning Exploit Database", 3)
-    #     self._vulnerability_scan()
-        
-    #     # Phase 3: Attack Simulation
-    #     self._cyber_attack_simulation()
-        
-    #     # Phase 4: Actual Hardening
-    #     if dry_run:
-    #         self._hacking_animation("Simulating Countermeasures", 4)
-    #         print(f"{Fore.YELLOW}[SIMULATION] No changes were actually made{Style.RESET_ALL}")
-    #     else:
-    #         self._hacking_animation("Deploying Cyber Armor", 4)
-    #         try:
-    #             if platform.system() == "Windows":
-    #                 os.system("powershell Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
-    #                 os.system("powershell Set-MpPreference -DisableRealtimeMonitoring $false")
-    #             elif platform.system() == "Linux":
-    #                 os.system("sudo ufw --force enable")
-    #                 os.system("sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config")
-    #             logging.info(f"Hardening completed on {platform.system()}")
-    #         except Exception as e:
-    #             logging.error(f"Hardening failed: {str(e)}")
-    #             print(f"{Fore.RED}[!] Error during hardening: {str(e)}{Style.RESET_ALL}")
-    def harden_system(self, dry_run=False):
-        """Full cinematic hardening experience with proper error handling"""
-        try:
-        # Initialize display
-            self._print_banner("CYBER DEFENSE")
-        
-        # Phase 0: Check privileges
-            if not self.is_admin():
-                self._hacking_animation("Checking Privileges")
-                print(f"{Fore.RED}[!] Admin rights required{Style.RESET_ALL}")
-                return
-
-        # Phase 1: System Scan
-            self._matrix_rain(1.5)
-            self._hacking_animation("Initializing Threat Assessment", 2)
-            self._network_scan_animation()
-        
-        # Phase 2: Vulnerability Detection
-            self._hacking_animation("Scanning Exploit Database", 3)
-            self._vulnerability_scan()
-        
-        # Phase 3: Attack Simulation
-            self._cyber_attack_simulation()
-        
-        # Phase 4: Actual Hardening
-            if dry_run:
-                self._hacking_animation("Simulating Countermeasures", 4)
-                print(f"{Fore.YELLOW}[SIMULATION] No changes were actually made{Style.RESET_ALL}")
-            else:
-                self._hacking_animation("Deploying Cyber Armor", 4)
-                try:
-                    if platform.system() == "Windows":
-                        os.system("powershell Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
-                    elif platform.system() == "Linux":
-                        os.system("sudo ufw --force enable")
-                    logging.info(f"Hardening completed on {platform.system()}")
-                except Exception as e:
-                    logging.error(f"Hardening failed: {str(e)}")
-                    print(f"{Fore.RED}[!] Error during hardening: {str(e)}{Style.RESET_ALL}")
-
-        # Final display
-            self._matrix_rain(1)
-            print(f"\n{Fore.GREEN}▄︻デ══━ SYSTEM FORTIFICATION COMPLETE ══━︻▄{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW} Firewall Active | Intrusion Prevention Engaged | Threat Level: {random.randint(1, 5)}/10{Style.RESET_ALL}")
-
-        except Exception as e:
-            print(f"{Fore.RED}[!] Critical error: {str(e)}{Style.RESET_ALL}")
-
-        # Final cinematic
-            self._matrix_rain(1)
-            print(f"\n{Fore.GREEN}▄︻デ══━ SYSTEM FORTIFICATION COMPLETE ══━︻▄{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW} Firewall Active | Intrusion Prevention Engaged | Threat Level: {random.randint(1, 5)}/10{Style.RESET_ALL}")
-# delete above code implementation if
     def is_admin(self):
         """Check for admin privileges"""
         try:
@@ -1851,13 +1421,128 @@ class SecurityTerminal:
                 return os.getuid() == 0
         except:
             return False
-    # ==================== COMMAND HANDLER ====================
-    def handle_command(self, cmd):
-        if cmd == "scan": 
-            self.scan_system()
-        elif cmd == "netmon": 
-            self.network_monitor()
 
+    def harden_system(self, dry_run=False):
+        """Full cinematic hardening experience with proper error handling"""
+        try:
+            self._print_banner("CYBER DEFENSE")
+
+            if not self.is_admin():
+                self._hacking_animation("Checking Privileges")
+                print(f"{Fore.RED}[!] Admin rights required{Style.RESET_ALL}")
+                return
+
+            # self._matrix_rain(1.5)
+            self._hacking_animation("Initializing Threat Assessment")
+            self._network_scan_animation()
+
+            self._hacking_animation("Scanning Exploit Database")
+            self._vulnerability_scan()
+
+            self._cyber_attack_simulation()
+
+            if dry_run:
+                self._hacking_animation("Simulating Countermeasures")
+                print(f"{Fore.YELLOW}[SIMULATION] No changes were actually made{Style.RESET_ALL}")
+            else:
+                self._hacking_animation("Deploying Cyber Armor")
+                try:
+                    if platform.system() == "Windows":
+                        os.system("powershell Disable-WindowsOptionalFeature -Online -FeatureName smb1protocol -NoRestart")
+                    elif platform.system() == "Linux":
+                        os.system("sudo ufw --force enable")
+                    logging.info(f"Hardening completed on {platform.system()}")
+                except Exception as e:
+                    logging.error(f"Hardening failed: {str(e)}")
+                    print(f"{Fore.RED}[!] Error during hardening: {str(e)}{Style.RESET_ALL}")
+
+            # self._matrix_rain(1)
+            print(f"\n{Fore.GREEN}▄︻デ══━ SYSTEM FORTIFICATION COMPLETE ══━︻▄{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW} Firewall Active | Intrusion Prevention Engaged | Threat Level: {random.randint(1, 10)}/10{Style.RESET_ALL}")
+
+        except Exception as e:
+            print(f"{Fore.RED}[!] Critical error: {str(e)}{Style.RESET_ALL}")
+            # self._matrix_rain(1)
+            print(f"\n{Fore.GREEN}▄︻デ══━ SYSTEM FORTIFICATION COMPLETE ══━︻▄{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW} Firewall Active | Intrusion Prevention Engaged | Threat Level: {random.randint(1, 10)}/10{Style.RESET_ALL}")
+        
+        # ends here improved code above
+
+
+
+
+    # go down here, don't remoe these lines below
+    def nikto_scan(self, target_url, port=80, output_file=None):
+        """Run Nikto scan on a target URL."""
+        cmd = f"nikto -h {target_url} -p {port}"
+        if output_file:
+            cmd += f" -o {output_file}"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return result.stdout
+
+    def legitify_scan_github(self, org_or_repo, token=None):
+        """Scan a GitHub org/repo for security issues."""
+        cmd = f"legitify scan --github {org_or_repo}"
+        if token:
+            cmd += f" --token {token}"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return result.stdout
+  
+    def handle_command(self, cmd):
+        parts = cmd.split()
+        if not parts:
+            print("[!] Empty command. Type 'help' for options.")
+            return
+
+    # ===== TruffleHog =====
+        if parts[0] == "trufflehog":
+            if "--git" in parts:
+                try:
+                    git_url = parts[parts.index("--git") + 1]
+                    print(self.trufflehog_scan_git(git_url))
+                except IndexError:
+                    print("[!] Missing Git URL. Usage: trufflehog --git <URL>")
+            elif "--fs" in parts:
+                try:
+                    fs_path = parts[parts.index("--fs") + 1]
+                    print(self.trufflehog_scan_filesystem(fs_path))
+                except IndexError:
+                    print("[!] Missing filesystem path. Usage: trufflehog --fs <PATH>")
+            else:
+                print("Usage: trufflehog --git <URL> OR --fs <PATH>")
+
+    # ===== Nikto =====
+        elif parts[0] == "nikto":
+            if "--url" not in parts:
+                print("Usage: nikto --url <TARGET> [--port PORT] [--output FILE]")
+                return
+            try:
+                target = parts[parts.index("--url") + 1]
+                port = parts[parts.index("--port") + 1] if "--port" in parts else "80"
+                output = parts[parts.index("--output") + 1] if "--output" in parts else None
+                print(self.nikto_scan(target, port, output))
+            except IndexError:
+                print("[!] Invalid arguments. Usage: nikto --url <TARGET> [--port PORT] [--output FILE]")
+
+    # ===== Legitify =====
+        elif parts[0] == "legitify":
+            if "--github" not in parts:
+                print("Usage: legitify --github <ORG/REPO> [--token TOKEN]")
+                return
+            try:
+                repo = parts[parts.index("--github") + 1]
+                token = parts[parts.index("--token") + 1] if "--token" in parts else None
+                print(self.legitify_scan_github(repo, token))
+            except IndexError:
+                print("[!] Invalid arguments. Usage: legitify --github <ORG/REPO> [--token TOKEN]")
+
+    # Original commands (scan, netmon, etc.)
+        elif cmd == "scan this system":
+            self.scan_system()
+        elif cmd == "netmon":
+            self.network_monitor()
+    
+     
         elif cmd == "exploitcheck": 
             self.check_exploits()
         elif cmd.startswith("macspoof"): 
@@ -1875,7 +1560,7 @@ class SecurityTerminal:
             self.system_info()
         elif cmd.startswith("killproc"): 
             self.kill_process(int(cmd.split()[1])) if len(cmd.split()) > 1 else print("Usage: killproc PID")
-        elif cmd == "chkintegrity": 
+        elif cmd == "check integrity": 
             self.check_integrity()
         elif cmd.startswith("encrypt"): 
             self.encrypt_file(cmd.split()[1] if len(cmd.split()) > 1 else input("File to encrypt: "))
@@ -1932,12 +1617,14 @@ class SecurityTerminal:
     DSTerminal Commands:
     
     === Core Security ===
-    scan           - System threat scan (animated)
-    netmon         - Live network monitoring
-    exploitcheck   - Check for critical CVEs
-    vtscan         - VirusTotal file analysis
-    clearlogs      - Securely wipe system logs
-    
+    scan                            - System threat scan (animated)
+    netmon                          - Live network monitoring
+    exploitcheck                    - Check for critical CVEs
+    vtscan                          - VirusTotal file analysis
+    clearlogs                       - Securely wipe system logs
+    nikto --url <TARGET>            - Web vulnerability scan")
+    legitify --github <ORG/REPO>    - Scan GitHub for misconfigurations")
+
     === Network Tools ===
     portsweep [IP] - Scan target for open ports
     traceroute [IP]- Network path analysis
@@ -1979,10 +1666,10 @@ class SecurityTerminal:
             self.print_banner()
             while True:
                 try:
-                        prompt_text = HTML('<ansigreen><b>DFFENEX</b></ansigreen>'
+                        prompt_text = HTML('<ansigreen><b>[-- DFFENEX</b></ansigreen>'
                                '<ansiblue>@</ansiblue>'
                                '<ansigreen><b>DSTerminal</b></ansigreen> '
-                               '<ansired>--]</ansired> ')
+                               '<ansired>]-[]</ansired> ')
                         user_input = self.session.prompt(prompt_text)
                         self.handle_command(user_input.strip())
                 except KeyboardInterrupt:
