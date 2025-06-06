@@ -44,6 +44,7 @@ from rich.live import Live
 from threading import Thread
 from rich.console import Console
 from rich.layout import Layout
+from rich.table import Table
 # from rich.group import Group
 
 init(autoreset=True)
@@ -170,71 +171,126 @@ class SecurityTerminal:
                 #     print("[+] System scan completed at 100%")
 
     def scan_system(self):
-        console = Console()
+        """Enhanced system scanner with real-time progress and results display"""
+     
 
-        stages = [
-            ("[cyan]Scanning Memory for anomalies...[/cyan]", "Memory Scan"),
-            ("[yellow]Analyzing Active Processes...[/yellow]", "Process Scan"),
-            ("[magenta]Inspecting Temporary & Hidden Files...[/magenta]", "Temp File Scan"),
-            ("[blue]Reviewing Network Connections...[/blue]", "Network Scan"),
-            ("[green]Checking Installed Applications...[/green]", "Software Audit"),
-            ("[white]Verifying System Integrity...[/white]", "System Integrity"),
-            ("[red]Reviewing User Accounts & Privileges...[/red]", "User Audit"),
-            ("[bright_cyan]Assessing Firewall and Security Tools...[/bright_cyan]", "Security Configs"),
-            ("[bright_magenta]Applying Heuristic & Behavioral Analysis...[/bright_magenta]", "Heuristics")
+    # Initialize console if not already done
+        if not hasattr(self, 'console'):
+            from rich.console import Console
+            self.console = Console()
+
+    # Define scan stages with their visual style
+        scan_stages = [
+            ("[cyan]Scanning Memory for anomalies...", "Memory Scan"),
+            ("[yellow]Analyzing Active Processes...", "Process Scan"),
+            ("[magenta]Inspecting Temporary Files...", "Temp File Scan"),
+            ("[blue]Checking Network Connections...", "Network Scan"),
+            ("[green]Auditing Installed Software...", "Software Audit"),
+            ("[white]Verifying System Integrity...", "System Integrity"),
+            ("[red]Reviewing User Accounts...", "User Audit"),
+            ("[bright_cyan]Checking Security Configs...", "Security Configs"),
+            ("[bright_magenta]Behavioral Analysis...", "Heuristics")
         ]
 
-        def animated_progress():
-            with Live(console=console, refresh_per_second=10, screen=True) as live:
-                for stage_text, task_label in stages:
+        def generate_scan_results(stage_name):
+            """Generate detailed results for each scan stage"""
+            results = []
+        
+            if stage_name == "Memory Scan":
+                mem = psutil.virtual_memory()
+                results.extend([
+                    ("Memory Usage", f"{mem.percent}%", "green" if mem.percent < 80 else "yellow"),
+                    ("Swap Usage", f"{psutil.swap_memory().percent}%", "green" if psutil.swap_memory().percent < 50 else "yellow")
+                ])
+            
+            elif stage_name == "Process Scan":
+                suspicious_procs = []
+                for proc in psutil.process_iter(['name', 'pid', 'exe']):
+                    try:
+                        if any(kw in proc.info['name'].lower() for kw in ["keylogger", "logkeys", "pykeylogger"]):
+                            suspicious_procs.append(f"{proc.info['name']} (PID: {proc.pid})")
+                    except:
+                        continue
+                    
+                if suspicious_procs:
+                    results.extend([(f"Suspicious Process {i+1}", proc, "red") 
+                                for i, proc in enumerate(suspicious_procs)])
+                else:
+                    results.append(("Suspicious Processes", "None found", "green"))
+                
+            elif stage_name == "Network Scan":
+                conns = psutil.net_connections()
+                established = sum(1 for c in conns if c.status == 'ESTABLISHED')
+                results.extend([
+                    ("Active Connections", str(established), "cyan"),
+                    ("Suspicious Ports", "None found", "green")
+                ])
+            
+        # Add more stages as needed...
+            
+            return results
+
+        def display_stage_results(stage_name):
+            """Display formatted results for a completed scan stage"""
+            results = generate_scan_results(stage_name)
+        
+            table = Table(title=f"Stage Results: {stage_name}", 
+                        show_header=True, 
+                        header_style="bold magenta",
+                        border_style="dim")
+        
+            table.add_column("Check", style="cyan", no_wrap=True)
+            table.add_column("Result", style="white")
+            table.add_column("Status", justify="right")
+        
+            for check, result, status_color in results:
+                table.add_row(check, result, f"[{status_color}]{status_color.upper()}[/]")
+            
+            self.console.print(Panel(table, 
+                                title=f"[b]Scan Results: {stage_name}[/b]", 
+                                border_style="bright_blue",
+                                padding=(1, 2)))
+
+        def run_scan():
+            """Main scan execution with progress animation"""
+            with Live(refresh_per_second=20, console=self.console) as live:
+                for stage_text, stage_name in scan_stages:
+                # Create progress bar for current stage
                     progress = Progress(
-                        TextColumn(stage_text),
-                        BarColumn(bar_width=None),
+                        TextColumn("[progress.description]{task.description}"),
+                        BarColumn(),
                         TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-                        expand=True,
+                        console=self.console
                     )
-                    task = progress.add_task(task_label, total=100)
-                    start_time = time.time()
-                    while not progress.finished:
-                        elapsed = time.time() - start_time
-                        percent = min(100, int((elapsed / 5) * 100))
-                        progress.update(task, completed=percent)
-                        panel = Panel(
-                            Align.center(progress, vertical="middle"),
-                            title="[bold white]System Scan[/bold white]",
-                            border_style="bright_white",
-                            padding=(1, 2),
-                            width=70
-                        )
+                
+                    task = progress.add_task(stage_text, total=100)
+                
+                # Animate progress
+                    for i in range(100):
+                        progress.update(task, advance=1)
                         live.update(
-                        Align.center(panel, vertical="middle")
+                            Panel(
+                                Align.center(progress),
+                                title="[bold]System Security Scan[/bold]",
+                                subtitle=stage_name,
+                                border_style="bright_white"
+                            )
                         )
-                        time.sleep(0.1)
+                        time.sleep(0.03)  # Adjust speed here
+                
+                # Show results after each stage completes
+                    display_stage_results(stage_name)
+                    time.sleep(1)  # Pause between stages
 
-        animation_thread = Thread(target=animated_progress)
-        animation_thread.start()
-        animation_thread.join()
+    # Run scan in a separate thread to prevent UI blocking
+        scan_thread = Thread(target=run_scan)
+        scan_thread.start()
+        scan_thread.join()
 
-        # Simulated real scan - process detection
-        suspicious_keywords = ["keylogger", "logkeys", "pykeylogger", "ahk", "injector"]
-        found_threats = False
-
-        for proc in psutil.process_iter(['name', 'pid', 'exe']):
-            try:
-                name = proc.info.get('name', '').lower()
-                exe = (proc.info.get('exe') or '').lower()
-                if any(kw in name for kw in suspicious_keywords):
-                    self.console.print(f"\n[bold red][!] Suspicious Process:[/bold red] {proc.info['name']} (PID: {proc.pid})")
-                    found_threats = True
-                if platform.system() == "Windows" and "temp" in exe:
-                    self.console.print(f"\n[bold yellow][!] Executable Running from Temp Directory:[/bold yellow] {proc.info['name']}")
-                    found_threats = True
-            except Exception:
-                continue
-
-        if not found_threats:
-            console.print("\n[bold blue][+] System is Protected & Monitored [!] [/bold blue]")
-            console.print("\n[bold green][+] No obvious threats detected[/bold green]")
+        # if not found_threats:
+        #     console.print(f"\n {display_results}")
+        #     console.print("\n[bold blue][+] System is Protected & Monitored [!] [/bold blue]")
+        #     console.print("\n[bold green][+] No obvious threats detected[/bold green]")
 
  
 

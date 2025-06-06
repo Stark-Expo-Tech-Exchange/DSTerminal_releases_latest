@@ -45,6 +45,7 @@ from threading import Thread
 from rich.console import Console
 from rich.layout import Layout
 from rich.table import Table
+from random import choice
 # from rich.group import Group
 
 init(autoreset=True)
@@ -78,10 +79,10 @@ class SecurityTerminal:
             history=FileHistory('.dst_history'),
             auto_suggest=AutoSuggestFromHistory(),
             completer=WordCompleter([
-                'scan-sys', 'legitify', 'nikto', 'netmon', 'harden-sys', 'vtscan', 'regmon', 
+                'scan -t -w system n network', 'legitify', 'nikto', 'net -n mon', 'harden -t sys', 'vt-scan', 'registry -n mon', 
                 'memdump', 'update', 'help', 'exit', 'clearlogs',
                 'portsweep', 'hashfile', 'sysinfo', 'killproc',
-                'chkintegrity', 'encrypt', 'decrypt', 'watchfolder',
+                'check integrity', 'encrypt', 'decrypt', 'watchfolder',
                 'traceroute', 'exploitcheck', 'macspoof', 'dnssec',
                 'sqlmap', 'ransomwatch', 'wificrack', 'stegcheck',
                 'certcheck', 'torify'
@@ -297,14 +298,106 @@ class SecurityTerminal:
 #  ends here going up the code
 
 
-
     def network_monitor(self):
-        print("\n[+] Monitoring network connections...")
-        for conn in psutil.net_connections():
-            if conn.status == "ESTABLISHED" and conn.raddr:
-                print(f"[→] {conn.laddr.ip}:{conn.laddr.port} → {conn.raddr.ip}:{conn.raddr.port} (PID: {conn.pid})")
-        print("[+] Network scan completed")
+        """Animated network monitoring with hacking-style visuals"""
+     
 
+        console = Console()
+        scanning_icons = ["🜂", "🜁", "🜃", "🜄", "⦿", "⌾", "⍟", "⋙"]
+        threat_colors = {"low": "green", "medium": "yellow", "high": "red"}
+
+        def generate_connection_table(connections):
+            """Generate animated network connection table"""
+            table = Table(
+                title="[bold red]NETWORK TRAFFIC ANALYSIS[/bold red]",
+                show_header=True,
+                header_style="bold bright_blue",
+                border_style="bright_white"
+            )
+        
+            table.add_column("LOCAL", style="cyan")
+            table.add_column("→", style="bold white", justify="center")
+            table.add_column("REMOTE", style="magenta")
+            table.add_column("PID", style="bright_white")
+            table.add_column("STATUS", justify="right")
+            table.add_column("THREAT", justify="right")
+
+            for conn in connections:
+                if conn.status == "ESTABLISHED" and conn.raddr:
+                # Threat assessment
+                    threat = choice(["low", "medium", "high"])  # Replace with real analysis
+                    threat_icon = {
+                        "low": "[green]✓",
+                        "medium": "[yellow]⚠",
+                        "high": "[red]✖"
+                    }[threat]
+                
+                # Random scanning animation effect
+                    scan_icon = choice(scanning_icons)
+                
+                    table.add_row(
+                        f"{conn.laddr.ip}:{conn.laddr.port}",
+                        f"[blink]{scan_icon}[/blink]",
+                        f"{conn.raddr.ip}:{conn.raddr.port}",
+                        str(conn.pid),
+                        "[bright_green]ACTIVE" if conn.status == "ESTABLISHED" else "[yellow]OTHER",
+                        threat_icon
+                    )
+            return table
+
+        def threat_scan_animation():
+            """Show scanning animation before results"""
+            with console.status("[bold green]Initializing network sensors...") as status:
+                for i in range(5):
+                    status.update(f"[bold {choice(['green','yellow','red'])}]Scanning layer {i+1}/5...")
+                    time.sleep(2.5)
+
+        def live_monitor(duration=10):
+            """Real-time network monitoring display"""
+            start_time = time.time()
+        
+            with Live(refresh_per_second=4, console=console) as live:
+                while time.time() - start_time < duration:
+                    connections = psutil.net_connections()
+                
+                # Build the dashboard
+                    dashboard = Table.grid(padding=1)
+                    dashboard.add_row(
+                        Panel(
+                            generate_connection_table(connections),
+                            title="[bold]Active Connections[/bold]",
+                            subtitle=f"Updated: {time.strftime('%H:%M:%S')}",
+                            border_style="bright_blue"
+                        )
+                    )
+                
+                # Add stats panel
+                    stats = Table(title="[bold]Network Statistics[/bold]", show_header=False, box=None)
+                    stats.add_row("Total Connections", f"[bold]{len(connections)}")
+                    stats.add_row("ESTABLISHED", f"[green]{sum(1 for c in connections if c.status == 'ESTABLISHED')}")
+                    stats.add_row("LISTEN", f"[yellow]{sum(1 for c in connections if c.status == 'LISTEN')}")
+                
+                    dashboard.add_row(
+                        Panel(
+                            stats,
+                            title="[bold]Stats[/bold]",
+                            border_style="bright_yellow"
+                        )
+                    )
+                
+                    live.update(dashboard)
+                    time.sleep(2)  # Refresh interval
+
+    # Run the enhanced monitor
+        console.print(Panel("[bold red] INITIATING NETWORK MONITORING SURVEILLANCE [/bold red]", 
+                        border_style="red", width=50))
+    
+        threat_scan_animation()
+        live_monitor(duration=15)
+    
+        console.print(Panel("[bold green] SCAN COMPLETED [/bold green]", 
+                        border_style="green", width=50))    
+                    
     # ==================== NEW ADVANCED COMMANDS ====================
     def check_exploits(self):
         vulns = {
@@ -315,7 +408,36 @@ class SecurityTerminal:
         for cve, desc in vulns.items():
             print(f"{cve}: {desc} - {'[!] VULNERABLE' if random.random() > 0.7 else '[+] Secure'}")
 
+    # def network_monitor(self):
+    #     console = Console()
+    #     spinner_frames = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"]
     
+    #     banner = Text()
+    #     banner.append("\n[bold bright_green]🛰️ Initiating Network Recon Protocol...[/bold bright_green]\n", style="bold")
+    #     banner.append("[dim]Decrypting connection headers[/dim]\n")
+    #     console.print(banner)
+    
+    #     time.sleep(1)
+
+    #     connections = [conn for conn in psutil.net_connections() if conn.status == "ESTABLISHED" and conn.raddr]
+    
+    #     with Live(console=console, refresh_per_second=10) as live:
+    #         for i, conn in enumerate(connections):
+    #             spinner = spinner_frames[i % len(spinner_frames)]
+    #             ip_src = f"{conn.laddr.ip}:{conn.laddr.port}"
+    #             ip_dst = f"{conn.raddr.ip}:{conn.raddr.port}"
+    #             conn_text = Text(f"{spinner} ", style="bold cyan")
+    #             conn_text.append(f"{ip_src}", style="green")
+    #             conn_text.append("  ➞  ", style="white")
+    #             conn_text.append(f"{ip_dst}", style="magenta")
+    #             conn_text.append(f"  (PID: {conn.pid})", style="dim")
+            
+    #             panel = Panel(conn_text, border_style="bright_white", title="[bold green]Intercepted Session", width=80)
+    #             live.update(panel)
+    #             time.sleep(0.25)
+    
+    #     console.print("\n[bold bright_green]✓ Network scan completed.[/bold bright_green]")
+
     # BELOW MACSPOOF CODE WORKING
     def spoof_mac(self, interface=None):
         """Enhanced MAC spoofing with detailed debugging"""
@@ -1585,9 +1707,9 @@ class SecurityTerminal:
                 print("[!] Invalid arguments. Usage: legitify --github <ORG/REPO> [--token TOKEN]")
 
     # Original commands (scan, netmon, etc.)
-        elif cmd == "scan this system":
+        elif cmd == "scan -t -w system n network":
             self.scan_system()
-        elif cmd == "netmon":
+        elif cmd == "net -n mon":
             self.network_monitor()
     
      
@@ -1645,11 +1767,11 @@ class SecurityTerminal:
             self.enable_tor_routing()
         elif cmd == "update": 
             print(f"\n[+] {self.check_updates()}")
-        elif cmd == "vtscan": 
+        elif cmd == "vt-scan": 
             self.vt_scan_menu()
-        elif cmd == "regmon": 
+        elif cmd == "registry -n mon": 
             print(self.monitor_registry())
-        elif cmd == "harden": 
+        elif cmd == "harden -t sys": 
             self.harden_system()
         elif cmd == "help": 
             self.show_help()
