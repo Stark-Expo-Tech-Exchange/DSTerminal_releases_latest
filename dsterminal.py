@@ -1718,7 +1718,7 @@ class SecurityTerminal:
                 self.color = random.choice(["cyan", "magenta", "green", "yellow", "red", "blue", "bright_white"])
                 return Text(symbol, style=self.color)
 
-        rows, cols = 2, 100
+        rows, cols = 2, 150
         symbol_grid = [[RotatingSymbol() for _ in range(cols)] for _ in range(rows)]
 
     # Progress bar setup
