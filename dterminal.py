@@ -1245,59 +1245,59 @@ class SecurityTerminal:
 
 # uncomment the code below for shutting down==============================
 
-    # def emergency_shutdown(self):
-        # console = Console()
-        # warning_panel = Panel(
-        #     Align.center(
-        #         "[bold red]⚠ WARNING: This will initiate an IMMEDIATE SYSTEM SHUTDOWN.[/bold red]\n\n"
-        #         "[yellow]Type [bold]'CONFIRM'[/bold] to proceed or anything else to cancel.[/yellow]",
-        #         vertical="middle"
-        #     ),
-        #     title="[bold red]EMERGENCY SHUTDOWN MODE[/bold red]",
-        #     border_style="bright_red",
-        #     width=72,
-        #     padding=(2, 4),
-        # )
-        # console.print(Align.center(warning_panel, vertical="middle"))
+    def emergency_shutdown(self):
+        console = Console()
+        warning_panel = Panel(
+            Align.center(
+                "[bold red]⚠ WARNING: This will initiate an IMMEDIATE SYSTEM SHUTDOWN.[/bold red]\n\n"
+                "[yellow]Type [bold]'CONFIRM'[/bold] to proceed or anything else to cancel.[/yellow]",
+                vertical="middle"
+            ),
+            title="[bold red]EMERGENCY SHUTDOWN MODE[/bold red]",
+            border_style="bright_red",
+            width=72,
+            padding=(2, 4),
+        )
+        console.print(Align.center(warning_panel, vertical="middle"))
     
-        # user_input = Prompt.ask("[bold red]>>> Confirm Shutdown[/bold red]").strip().upper()
-        # if user_input != "CONFIRM":
-        #     console.print(
-        #         Panel.fit(
-        #             "[bold green]✔ Shutdown cancelled. You're safe.[/bold green]",
-        #             border_style="green",
-        #             width=50
-        #         )
-        #     )
-        #     return
+        user_input = Prompt.ask("[bold red]>>> Confirm Shutdown[/bold red]").strip().upper()
+        if user_input != "CONFIRM":
+            console.print(
+                Panel.fit(
+                    "[bold green]✔ Shutdown cancelled. You're safe.[/bold green]",
+                    border_style="green",
+                    width=50
+                )
+            )
+            return
 
-    # Animated progress bar
-        # progress = Progress(
-        #     SpinnerColumn(style="bold red"),
-        #     BarColumn(bar_width=None),
-        #     TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        #     TextColumn("[bold red]Shutting down system..."),
-        #     expand=True,
-        # )
+        # Animated progress bar
+        progress = Progress(
+            SpinnerColumn(style="bold red"),
+            BarColumn(bar_width=None),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn("[bold red]Shutting down system..."),
+            expand=True,
+        )
 
-        # with Live(console=console, refresh_per_second=20, screen=True) as live:
-        #     task = progress.add_task("shutdown", total=100)
-        #     for percent in range(0, 101, 5):
-        #         panel = Panel(
-        #             Align.center(progress, vertical="middle"),
-        #             title="[bold red]SYSTEM SHUTDOWN IN PROGRESS...[/bold red]",
-        #             border_style="red",
-        #             padding=(2, 4),
-        #             width=70,
-        #         )
-        #         progress.update(task, completed=percent)
-        #         live.update(Align.center(panel, vertical="middle"))
-        #         time.sleep(0.15)
+        with Live(console=console, refresh_per_second=20, screen=True) as live:
+            task = progress.add_task("shutdown", total=100)
+            for percent in range(0, 101, 5):
+                panel = Panel(
+                    Align.center(progress, vertical="middle"),
+                    title="[bold red]SYSTEM SHUTDOWN IN PROGRESS...[/bold red]",
+                    border_style="red",
+                    padding=(2, 4),
+                    width=70,
+                )
+                progress.update(task, completed=percent)
+                live.update(Align.center(panel, vertical="middle"))
+                time.sleep(0.15)
 
-        # console.print(
-        #     Panel.fit("[bold red]System is shutting down now...[/bold red]", border_style="red", width=50)
-        # )
-        # os.system("sudo shutdown now")
+        console.print(
+            Panel.fit("[bold red]System is shutting down now...[/bold red]", border_style="red", width=50)
+        )
+        os.system("sudo shutdown now")
 
     # code shutdwon ends here and uncomment the code above
   
