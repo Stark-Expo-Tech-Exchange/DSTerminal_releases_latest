@@ -2,14 +2,14 @@
 
 [Setup]
 AppName=DSTerminal
-AppVersion=2.0
+AppVersion=v2.0.0
 AppPublisher=Stark Expo Tech Exchange
 AppPublisherURL=https://starkexpotechexchange-mw.com
 DefaultDirName={pf}\DSTerminal
 DefaultGroupName=DSTerminal
 LicenseFile=license.txt
 OutputDir=.
-OutputBaseFilename=dsterminal-setup
+OutputBaseFilename=DSTerminal_Installer
 Compression=lzma
 SolidCompression=yes
 DisableWelcomePage=no
