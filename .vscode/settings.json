@@ -1,0 +1,8 @@
+{
+    "zenMode.fullScreen": false,
+    "zenMode.centerLayout": false,
+    "zenMode.hideActivityBar": false,
+    "zenMode.hideStatusBar": false,
+    "zenMode.restore": true,
+    "zenMode.hideLineNumbers": false
+}

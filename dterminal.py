@@ -38,7 +38,7 @@ from rich.console import Console, Group
 from rich.panel import Panel
 from rich.align import Align
 from rich.text import Text
-from rich.progress import Progress, BarColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 from rich.live import Live
 
 from threading import Thread
@@ -79,7 +79,9 @@ class SecurityTerminal:
             history=FileHistory('.dst_history'),
             auto_suggest=AutoSuggestFromHistory(),
             completer=WordCompleter([
-                'scan -t -w system n network', 'legitify', 'nikto', 'net -n mon', 'harden -t sys', 'vt-scan', 'registry -n mon', 
+                'scan -t -w system n network', 'clear', 'clear terminal', 
+                'legitify', 'nikto', 'net -n mon', 'harden -t sys', 'vt-scan',
+                'registry -n mon', 'cls', 
                 'memdump', 'update', 'help', 'exit', 'clearlogs',
                 'portsweep', 'hashfile', 'sysinfo', 'killproc',
                 'check integrity', 'encrypt', 'decrypt', 'watchfolder',
@@ -125,15 +127,6 @@ class SecurityTerminal:
             return False
 
     # ==================== CORE SECURITY COMMANDS ====================
-    def _animate_scan(self):
-        spinner = ['|', '/', '-', '\\']
-        i = 0
-        while not self.scan_complete.is_set():
-            sys.stdout.write(f"\r[+] Scanning system... {spinner[i]} {self.scan_progress}%")
-            sys.stdout.flush()
-            time.sleep(0.1)
-            i = (i + 1) % 4
-        sys.stdout.write("\r" + " " * 50 + "\r")
 
     # def scan_system(self):
     #     self.scan_complete.clear()
@@ -1038,18 +1031,275 @@ class SecurityTerminal:
         except Exception as e:
             print(f"[!] Error: {e}")
 
-    def check_updates(self):
-        """Check for DST updates"""
-        try:
-            response = requests.get(CONFIG['https://github.com/Stark-Expo-Tech-Exchange/DSTerminal_releases_latest.git'])
-            latest = response.json()
-            if latest['tag_name'] > CONFIG['CURRENT_VERSION']:
-                return f"Update available: {latest['tag_name']}\nDownload: {latest['html_url']}"
-            else:
-                return "You have the latest version"
-        except Exception as e:
-            return f"Update check failed: {e}"
+    # def check_updates(self):
+    #     """Check for DST updates"""
+    #     try:
+    #         response = requests.get(CONFIG['https://github.com/Stark-Expo-Tech-Exchange/DSTerminal_releases_latest.git'])
+    #         latest = response.json()
+    #         if latest['tag_name'] > CONFIG['CURRENT_VERSION']:
+    #             return f"Update available: {latest['tag_name']}\nDownload: {latest['html_url']}"
+    #         else:
+    #             return "You have the latest version"
+    #     except Exception as e:
+    #         return f"Update check failed: {e}"
 
+    # update s code ends here going up=======================
+
+    # def check_updates(self):
+    #     """Check for DST updates with visual feedback"""
+    #     console = Console()
+    
+    # # Animated loading screen
+    #     with Progress(
+    #         SpinnerColumn(),
+    #         TextColumn("[progress.description]{task.description}"),
+    #         transient=True,
+    #     ) as progress:
+    #         task = progress.add_task("[cyan]Checking for updates...", total=100)
+        
+    #         for i in range(100):
+    #             time.sleep(0.02)  # Simulate work
+    #             progress.update(task, advance=1)
+    
+    # # Live updating status display
+    #     status_text = Text("", style="bold yellow")
+    
+    #     with Live(Panel(status_text), refresh_per_second=10) as live:
+    #         try:
+    #         # Phase 1: Connecting
+    #             status_text.append("🔗 Connecting to update server...\n", style="bold blue")
+    #             live.refresh()
+    #             time.sleep(0.5)
+            
+    #         # Phase 2: Downloading data
+    #             status_text.append("⏬ Fetching version information...\n", style="bold cyan")
+    #             live.refresh()
+            
+    #             response = requests.get('https://api.github.com/repos/Stark-Expo-Tech-Exchange/DSTerminal/releases/latest')
+    #             latest = response.json()
+            
+    #         # Phase 3: Processing
+    #             status_text.append(f"⚙ Processing version {latest['tag_name']}...\n", style="bold green")
+    #             live.refresh()
+    #             time.sleep(0.3)
+            
+    #             if latest['tag_name'] > CONFIG['CURRENT_VERSION']:
+    #             # Update available animation
+    #                 for _ in range(3):
+    #                     status_text.append("✨", style="bold magenta")
+    #                     live.refresh()
+    #                     time.sleep(0.2)
+    #                     status_text.append("🌟", style="bold yellow")
+    #                     live.refresh()
+    #                     time.sleep(0.2)
+                
+    #                 return Panel(
+    #                     f"[bold green]Update available: {latest['tag_name']}\n\n"
+    #                     f"[bold white]Release Notes:[/] {latest['body']}\n\n"
+    #                     f"[bold cyan]Download:[/] {latest['html_url']}",
+    #                     title="🚀 New Version Available",
+    #                     border_style="bold green"
+    #                 )
+    #             else:
+    #             # Up-to-date animation
+    #                 status_text.append("✅ ", style="bold green")
+    #                 live.refresh()
+    #                 time.sleep(0.5)
+    #                 return Panel(
+    #                     "[bold green]You have the latest version![/]",
+    #                     title="✓ System Status",
+    #                     border_style="bold green"
+    #                 )
+                
+    #         except Exception as e:
+    #         # Error animation
+    #             for _ in range(3):
+    #                 status_text.append("⚠", style="blink bold red")
+    #                 live.refresh()
+    #                 time.sleep(0.2)
+            
+    #             return Panel(
+    #                 f"[bold red]Update check failed:[/] {str(e)}",
+    #                 title="⚠ Update Error",
+    #                 border_style="bold red"
+    #             )
+
+    def check_updates(self):
+        """Check for DST updates with visual feedback"""
+        console = Console()
+    
+        try:
+        # Display initial connection status
+            with console.status("[bold blue]🔗 Connecting to update server...") as status:
+                time.sleep(1)
+            
+            # Phase 1: Fetching data
+                status.update("[bold cyan]⏬ Fetching version information...")
+                try:
+                    response = requests.get(
+                        'https://github.com/Stark-Expo-Tech-Exchange/DSTerminal_releases_latest.git',
+                        timeout=10
+                    )
+                    response.raise_for_status()
+                    latest = response.json()
+                except requests.RequestException as e:
+                    console.print(Panel(
+                        f"[bold red]⚠ Network error:[/] {str(e)}",
+                        title="Connection Failed",
+                        border_style="bold red"
+                    ))
+                    return False
+
+            # Phase 2: Processing
+                status.update(f"[bold green]⚙ Processing version {latest.get('tag_name', 'unknown')}...")
+                time.sleep(0.5)
+
+            # Validate response
+                if 'tag_name' not in latest:
+                    console.print(Panel(
+                        "[bold red]⚠ Invalid response from update server[/]",
+                        title="Data Error",
+                        border_style="bold red"
+                    ))
+                    return False
+
+                current_version = getattr(self, 'CURRENT_VERSION', 'v2.0.0')
+            
+                if latest['tag_name'] > current_version:
+                # Update available
+                    console.print(Panel(
+                        f"[bold green]Update available: {latest['tag_name']}[/]\n\n"
+                        f"[bold white]Release Notes:[/]\n{latest.get('body', 'No release notes')}\n\n"
+                        f"[bold cyan]Download: [link={latest['html_url']}]{latest['html_url']}[/link]",
+                        title="🚀 New Version Available",
+                        border_style="bold green",
+                        padding=(1, 2)
+                    ))
+                    return True
+                else:
+                # Up-to-date
+                    console.print(Panel(
+                        "[bold green]✓ You have the latest version![/]",
+                        title="System Status",
+                        border_style="bold green",
+                        padding=(1, 4)
+                    ))
+                    return True
+
+        except Exception as e:
+            console.print(Panel(
+                f"[bold red]⚠ Unexpected error:[/] {str(e)}",
+                title="⚠ Critical Error",
+                border_style="blink bold red"
+            ))
+            return
+
+
+    # clearing the terminal code starts here
+    def clear_terminal(self):
+        console = Console()
+        with Live(console=console, refresh_per_second=10, screen=True) as live:
+            for i in range(1, 6):
+                cleanup_panel = Panel(
+                    Align.center(
+                        f"[bold cyan]→ Cleaning stage {i}/5...\n[blink]✶✶✶[/blink]", vertical="middle"),
+                    title="[bold bright_cyan]TERMINAL SANITIZATION[/bold bright_cyan]",
+                    border_style="cyan",
+                    padding=(2, 4),
+                    width=60
+                )
+                live.update(Align.center(cleanup_panel, vertical="middle"))
+                time.sleep(1.5)
+
+        os.system('clear' if os.name == 'posix' else 'cls')
+        console.print(
+            Panel.fit(
+                "[bold blue]✔ Terminal workspace sanitized successfully![/bold blue]",
+                border_style="purple",
+                width=50
+            )
+        )
+
+    # cleaning terminal ends here
+
+    # ==========================================================
+
+    # emergency shutdown code command starts here
+    # def emergency_shutdown(self):
+        # console = Console()
+        # with Live(console=console, refresh_per_second=10, screen=True) as live:
+        #     for i in range(5, 0, -1):
+        #         panel = Panel(
+        #             Align.center(f"[bold red]⚠ SYSTEM SHUTDOWN IN {i}...[/bold red]", vertical="middle"),
+        #             title="[bold red]EMERGENCY SHUTDOWN[/bold red]",
+        #             border_style="bright_red",
+        #             width=60,
+        #             padding=(2, 4),
+        #         )
+        #         live.update(Align.center(panel, vertical="middle"))
+        #         time.sleep(1.5)
+
+        # console.print(Panel.fit("[bold red]Shutting down now...[/bold red]", border_style="red"))
+        # os.system("sudo shutdown now")
+
+
+# uncomment the code below for shutting down==============================
+
+    # def emergency_shutdown(self):
+        # console = Console()
+        # warning_panel = Panel(
+        #     Align.center(
+        #         "[bold red]⚠ WARNING: This will initiate an IMMEDIATE SYSTEM SHUTDOWN.[/bold red]\n\n"
+        #         "[yellow]Type [bold]'CONFIRM'[/bold] to proceed or anything else to cancel.[/yellow]",
+        #         vertical="middle"
+        #     ),
+        #     title="[bold red]EMERGENCY SHUTDOWN MODE[/bold red]",
+        #     border_style="bright_red",
+        #     width=72,
+        #     padding=(2, 4),
+        # )
+        # console.print(Align.center(warning_panel, vertical="middle"))
+    
+        # user_input = Prompt.ask("[bold red]>>> Confirm Shutdown[/bold red]").strip().upper()
+        # if user_input != "CONFIRM":
+        #     console.print(
+        #         Panel.fit(
+        #             "[bold green]✔ Shutdown cancelled. You're safe.[/bold green]",
+        #             border_style="green",
+        #             width=50
+        #         )
+        #     )
+        #     return
+
+    # Animated progress bar
+        # progress = Progress(
+        #     SpinnerColumn(style="bold red"),
+        #     BarColumn(bar_width=None),
+        #     TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        #     TextColumn("[bold red]Shutting down system..."),
+        #     expand=True,
+        # )
+
+        # with Live(console=console, refresh_per_second=20, screen=True) as live:
+        #     task = progress.add_task("shutdown", total=100)
+        #     for percent in range(0, 101, 5):
+        #         panel = Panel(
+        #             Align.center(progress, vertical="middle"),
+        #             title="[bold red]SYSTEM SHUTDOWN IN PROGRESS...[/bold red]",
+        #             border_style="red",
+        #             padding=(2, 4),
+        #             width=70,
+        #         )
+        #         progress.update(task, completed=percent)
+        #         live.update(Align.center(panel, vertical="middle"))
+        #         time.sleep(0.15)
+
+        # console.print(
+        #     Panel.fit("[bold red]System is shutting down now...[/bold red]", border_style="red", width=50)
+        # )
+        # os.system("sudo shutdown now")
+
+    # code shutdwon ends here and uncomment the code above
   
     def vt_scan_menu(self):
         """Enhanced VirusTotal scanning interface"""
@@ -1468,7 +1718,7 @@ class SecurityTerminal:
                 self.color = random.choice(["cyan", "magenta", "green", "yellow", "red", "blue", "bright_white"])
                 return Text(symbol, style=self.color)
 
-        rows, cols = 5, 150
+        rows, cols = 2, 100
         symbol_grid = [[RotatingSymbol() for _ in range(cols)] for _ in range(rows)]
 
     # Progress bar setup
@@ -1711,25 +1961,46 @@ class SecurityTerminal:
             self.scan_system()
         elif cmd == "net -n mon":
             self.network_monitor()
+
+        # ===================================
+
+    #  for clear command to clean terminal
+        elif cmd == "clear terminal":
+            self.clear_terminal()
+
+        elif cmd == "clear":
+            self.clear_terminal()
+        elif cmd == "shutdown":
+            self.emergency_shutdown()
     
-     
+
+# ================================================
+    # exploit check and mac address change
         elif cmd == "exploitcheck": 
             self.check_exploits()
         elif cmd.startswith("macspoof"): 
             self.spoof_mac(cmd.split()[1] if len(cmd.split()) > 1 else "eth0")
+
+    #  sqlmap and log clearing
         elif cmd.startswith("sqlmap"): 
             self.sql_injection_scan(cmd.split()[1] if len(cmd.split()) > 1 else input("Target URL: "))
         elif cmd == "clearlogs": 
             self.clear_logs()
+
+    # portsweep and hashing file commands
         elif cmd.startswith("portsweep"): 
             target = cmd.split()[1] if len(cmd.split()) > 1 else "127.0.0.1"
             self.port_scan(target)
         elif cmd.startswith("hashfile"): 
             self.hash_file(cmd.split()[1] if len(cmd.split()) > 1 else input("File path: "))
+
+    #  system information detailed part and force killing of running processes
         elif cmd == "sysinfo": 
             self.system_info()
         elif cmd.startswith("killproc"): 
             self.kill_process(int(cmd.split()[1])) if len(cmd.split()) > 1 else print("Usage: killproc PID")
+
+    # ==================check integrity and encrypt or decrypt files/folders
         elif cmd == "check integrity": 
             self.check_integrity()
         elif cmd.startswith("encrypt"): 
@@ -1740,6 +2011,8 @@ class SecurityTerminal:
                 self.decrypt_file(args[1], args[2])
             else: 
                 print("Usage: decrypt FILE.enc KEY")
+
+    # =====================================
         elif cmd.startswith("watchfolder"): 
             self.watch_folder(cmd.split()[1] if len(cmd.split()) > 1 else ".")
         elif cmd.startswith("traceroute"): 
