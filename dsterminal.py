@@ -79,8 +79,8 @@ class SecurityTerminal:
             history=FileHistory('.dst_history'),
             auto_suggest=AutoSuggestFromHistory(),
             completer=WordCompleter([
-                'scan -t -w system n network', 'clear', 'clear terminal', 
-                'legitify', 'nikto', 'net -n mon', 'harden -t sys', 'vt-scan',
+                'scan -t -w system -all', 'clear', 'clear terminal', 
+                'legitify', 'nikto', 'nikto --url [TARGET URL HERE] -p (port number here) -o [output file e.g report.txt]', 'net -n mon', 'harden -t sys', 'vt-scan',
                 'registry -n mon', 'cls', 
                 'memdump', 'update', 'help', 'exit', 'clearlogs',
                 'portsweep', 'hashfile', 'sysinfo', 'killproc',
@@ -100,32 +100,57 @@ class SecurityTerminal:
         self.scan_progress = 0
 
     def print_banner(self):
-        print(f"""
-    ╔═══════════════════════════════════════════════════════════════════============═══╗
-        ██████╗ ███████╗███████╗███████╗███╗   ██╗███████╗██╗  ██╗
-        ██╔══██╗██╔════╝██╔════╝██╔════╝████╗  ██║██╔════╝╚██╗██╔╝
-        ██║  ██║█████╗  █████╗  █████╗  ██╔██╗ ██║█████╗   ╚███╔╝ 
-        ██║  ██║██╔══╝  ██╔══╝  ██╔══╝  ██║╚██╗██║██╔══╝   ██╔██╗ 
-        ██████╔╝██║     ██║     ███████╗██║ ╚████║███████╗██╔╝ ██╗
-        ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
-        
-    ╠════════════════════════════════════════════════════════════════============══════╣
-    ║    Defensive Security Terminal v2.0.0 | {platform.system()} {platform.release()}   ║
-    ║    Developed by: Spark Wilson Spink | © 2024| Powered by Stark Expo Tech Exchange║
-    ║    Type 'help' for available commands                                            ║
-    ║ (🔍, ⚡, 🛡️) 🌐 ⚡ CLI Mode: {'ADMIN' if self.is_admin() else 'USER'}               
-    ╚════════════════════════════════════════════════════════════════════============══╝
-        """)
+        colors = [Fore.RED, Fore.GREEN, Fore.CYAN, Fore.MAGENTA, Fore.YELLOW, Fore.BLUE]
+        color = random.choice(colors)
+        terminal_width = shutil.get_terminal_size((80, 20)).columns
+
+        banner_lines = [
+        "╔═══════════════════════════════════════════════════════════════════============═══╗",
+        "    ██████╗ ███████╗███████╗███████╗███╗   ██╗███████╗██╗  ██╗",
+        "    ██╔══██╗██╔════╝██╔════╝██╔════╝████╗  ██║██╔════╝╚██╗██╔╝",
+        "    ██║  ██║█████╗  █████╗  █████╗  ██╔██╗ ██║█████╗   ╚███╔╝ ",
+        "    ██║  ██║██╔══╝  ██╔══╝  ██╔══╝  ██║╚██╗██║██╔══╝   ██╔██╗ ",
+        "    ██████╔╝██║     ██║     ███████╗██║ ╚████║███████╗██╔╝ ██╗",
+        "    ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝",
+        "",
+        "╠════════════════════════════════════════════════════════════════============══════╣",
+        f"║    Defensive Security Terminal v2.0.0 | {platform.system()} {platform.release()}   ║",
+        "║    Developed by: Spark Wilson Spink | © 2024| Powered by Stark Expo Tech Exchange║",
+        "║    Type 'help' for available commands                                            ║",
+        f"║ (🔍, ⚡, 🛡️) 🌐 ⚡ CLI Mode: {'ADMIN' if self.is_admin() else 'USER'}               ",
+        "╚════════════════════════════════════════════════════════════════════============══╝"
+        ]
+
+        def glitch_char(c):
+            if c.isspace():
+                return c
+            return random.choice(["#", "@", "%", "&", "*", c])
+
+        def type_line(line, delay=0.002, glitch=False):
+            centered = line.center(terminal_width)
+            output = ""
+            for char in centered:
+                if glitch and random.random() < 0.04:
+                    sys.stdout.write(color + glitch_char(char))
+                    sys.stdout.flush()
+                    time.sleep(delay * 2)
+                    sys.stdout.write('\b' + color + char)
+                    sys.stdout.flush()
+                else:
+                    sys.stdout.write(color + char)
+                    sys.stdout.flush()
+                time.sleep(delay)
+            sys.stdout.write("\n")
+            time.sleep(0.01)
+
+        for line in banner_lines:
+            type_line(line, glitch=True)
+
+        print(Style.RESET_ALL)
 
         if not self.is_admin():
             print("\n[!] Warning: Running without administrator privileges. Some features may be limited.")
-
-    def is_admin(self):
-        try:
-            return os.getuid() == 0 if platform.system() != 'Windows' else None
-        except:
-            return False
-
+ 
     # ==================== CORE SECURITY COMMANDS ====================
 
     # def scan_system(self):
@@ -1891,7 +1916,7 @@ class SecurityTerminal:
 
 
 
-    # go down here, don't remoe these lines below
+    # go down here, don't remove these lines below
     def nikto_scan(self, target_url, port=80, output_file=None):
         """Run Nikto scan on a target URL."""
         cmd = f"nikto -h {target_url} -p {port}"
@@ -1957,7 +1982,7 @@ class SecurityTerminal:
                 print("[!] Invalid arguments. Usage: legitify --github <ORG/REPO> [--token TOKEN]")
 
     # Original commands (scan, netmon, etc.)
-        elif cmd == "scan -t -w system n network":
+        elif cmd == "scan -t -w system -all":
             self.scan_system()
         elif cmd == "net -n mon":
             self.network_monitor()
@@ -2057,51 +2082,55 @@ class SecurityTerminal:
     # ==================== HELP MENU ====================
     def show_help(self):
         help_text = """
-    DSTerminal Commands:
+                    _____________DSTerminal Commands Help Menu______________:
     
-    === Core Security ===
-    scan                            - System threat scan (animated)
-    netmon                          - Live network monitoring
-    exploitcheck                    - Check for critical CVEs
-    vtscan                          - VirusTotal file analysis
-    clearlogs                       - Securely wipe system logs
-    nikto --url <TARGET>            - Web vulnerability scan")
-    legitify --github <ORG/REPO>    - Scan GitHub for misconfigurations")
+    === Core Security ========
+    scan -t -w system -all                              - System threat scan (sys, apps, net e.t.c)
+    net -n mon                                          - Live network monitoring
+    exploitcheck                                        - Check for critical CVEs
+    vtscan                                              - VirusTotal file analysis
+    clearlogs                                           - Securely wipe system logs
+    nikto --url <TARGET>                                - Web vulnerability scan")
+    legitify --github <ORG/REPO>                        - Scan GitHub for misconfigurations")
 
-    === Network Tools ===
-    portsweep [IP] - Scan target for open ports
-    traceroute [IP]- Network path analysis
-    torify         - Route traffic through Tor
-    dnssec [DOMAIN]- Validate DNSSEC
+    === Network Tools ========
+    portsweep [IP]                                      - Scan target for open ports
+    traceroute [IP]                                     - Network path analysis
+    torify                                              - Route traffic through Tor
+    dnssec [DOMAIN]                                     - Validate DNSSEC
     
-    === Forensics ===
-    memdump        - Capture RAM for analysis
-    hashfile [PATH]- Generate file hashes
-    stegcheck [IMG]- Detect hidden image data
-    ransomwatch    - Find ransomware artifacts
+    === Forensics ============
+    memdump                                             - Capture RAM for analysis
+    hashfile [PATH]                                     - Generate file hashes
+    stegcheck [IMG]                                     - Detect hidden image data
+    ransomwatch                                         - Find ransomware artifacts
     
-    === System Management ===
-    sysinfo        - Detailed system report
-    killproc PID   - Terminate process
-    macspoof [IFACE] - Randomize MAC address
-    harden         - Apply security hardening
+    === System Management ====
+    sysinfo                                             - Detailed system report
+    killproc PID                                        - Terminate process
+    macspoof [IFACE]                                    - Randomize MAC address
+    harden -t sys                                       - Apply security hardening
     
-    === Crypto Tools ===
-    encrypt FILE   - AES-256 file encryption
-    decrypt FILE KEY - File decryption
+    ===  Cryptography (Crypto Tools) ===
+    encrypt FILE                                        - AES-256 file encryption
+    decrypt FILE KEY                                    - File decryption
     
-    === Web Security ===
-    sqlmap [URL]   - SQL injection scan
-    certcheck [DOMAIN] - SSL certificate audit
+    === Web Security ========
+    sqlmap [URL]                                        - SQL injection scan
+    certcheck [DOMAIN]                                  - SSL certificate audit
     
-    === Monitoring ===
-    watchfolder [PATH] - Directory change detection
-    regmon        - Windows registry monitor
+    === Monitoring ==========
+    watchfolder [PATH]                                  - Directory change detection
+    regmon                                              - Windows registry monitor
     
-    === Utilities ===
-    update         - Check for DST updates
-    help           - Show this menu
-    exit           - Quit terminal
+    === Utilities ===========
+    update                                              - Check for DST updates
+    help                                                - Show this menu
+    exit                                                - Quit terminal
+    clear                                               - Cleaning up your terminal previous commands
+    clear terminal                                      - Cleaning up your terminal history commands
+    shutdown                                            - Emergency shutting down
+    shutdown now                                        - To shutdown your machine immediately
     """
         print(help_text)
 
