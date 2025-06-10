@@ -19,7 +19,7 @@ Pygments==2.19.1
 pyinstaller==6.13.0
 pyinstaller-hooks-contrib==2025.4
 pyOpenSSL==25.1.0
-requests==2.32.3
+requests==2.32.4
 rich==14.0.0
 smmap==5.0.2
 tqdm==4.67.1
