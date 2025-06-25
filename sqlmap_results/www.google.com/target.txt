@@ -1,0 +1,1 @@
+https://www.google.com/imghp?hl=ny&tab=wi&ogbl (GET)  # /usr/bin/sqlmap -u https://www.google.com --batch --risk=3 --level=5 --crawl=1 --random-agent --output-dir=./sqlmap_results

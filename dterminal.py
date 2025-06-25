@@ -46,7 +46,12 @@ from rich.console import Console
 from rich.layout import Layout
 from rich.table import Table
 from random import choice
+from rich.prompt import Prompt
 # from rich.group import Group
+from shutil import which
+from rich.columns import Columns
+
+
 
 init(autoreset=True)
 
@@ -58,6 +63,251 @@ CONFIG = {
     'LOG_FILE': 'secure_audit.log',
     'ENCRYPT_KEY': Fernet.generate_key().decode(),
     'CURRENT_VERSION': '2.0'
+}
+# Add this near CONFIG or __init__
+EDUCATION_TIPS = {
+    "scan -t -w system -all": """
+    [bold]💡 Did You Know?[/bold]\n
+    Regular system scans help detect malware persistence mechanisms like:\n
+    - [red]Rootkits[/red] hiding in kernel modules\n
+    - [yellow]Malicious scheduled tasks[/yellow] (check `crontab -l` or Task Scheduler)\n
+    - [blue]Unusual network listeners[/blue] (`netstat -tulnp`)\n
+    """,
+    "net -n mon": """
+    [bold]🔍 Network Monitoring Tip[/bold]\n
+    Monitor for:\n
+    1. [red]Unexpected outbound connections[/red] (could indicate data exfiltration)\n
+    2. Ports in `LISTEN` state that shouldn't be open\n
+    3. Use tools like [green]Wireshark[/green] for deep packet inspection.\n
+    """,
+    "harden -t sys": """
+    [bold]🛡️ Hardening Pro Tip[/bold]\n
+    Always follow the [yellow]Principle of Least Privilege[/yellow]:\n
+    - Disable unnecessary services\n
+    - Apply OS-specific benchmarks (e.g., [blue]CIS Benchmarks[/blue])\n
+    - Use [green]SELinux/AppArmor[/green] for mandatory access control.\n
+    """,
+    "exploitcheck": """
+    [bold]🔍 Exploit Check Tip[/bold]\n
+    Checks for common vulnerabilities like:\n
+    - [red]Unpatched CVEs[/red] (check with `cve-search`)\n
+    - [yellow]Misconfigured services[/yellow] (SSH, FTP, SMB)\n
+    - [blue]Kernel exploits[/blue] (DirtyPipe, DirtyCow)\n
+    [green]Pro Tip:[/green] Cross-reference with exploit-db.com\n
+    [bold]🧠 Exploit Check Insight[/bold]\n
+    - Regularly scan for known vulnerabilities (CVEs).\n
+    - Tools like [cyan]searchsploit[/cyan], [magenta]exploitdb[/magenta], and vulnerability scanners (Nessus, OpenVAS) are critical.
+    """,
+    
+    "macspoof": """
+    [bold]📡 MAC Spoofing Tip[/bold]\n
+    Remember:\n
+    1. Spoofing only works until [red]next reboot[/red]\n
+    2. For persistence, modify [yellow]/etc/network/interfaces[/yellow]\n
+    3. Some networks use [blue]MAC filtering[/blue] (check ARP tables)\n
+    [green]Example:[/green] macspoof wlan0\n
+    [bold]🎭 MAC Spoofing Caution[/bold]\n
+    - Changing MAC addresses can evade network tracking but might disrupt connections.\n
+    - Always reset your original MAC for stability.
+    """,
+    
+    "sqlmap": """
+    [bold]💉 SQL Injection Tip[/bold]\n
+    [bold]\ Introduction [/bold]\n
+    : Surely one of the best-known vulnerabilities, and one that has been around for a long time, SQL injection is still wreaking havoc in 2024. It is featured in many of our pentest reports every year.
+    : Furthermore, compared to 2022, in 2023, SQL injection vulnerabilities were identified as CVEs 2159 times. And in the latest OWASP Top 10, which lists the most critical and common vulnerabilities in web applications, they rank third.
+    Key techniques:\n
+    - [red]Boolean-based[/red] blind SQLi\n
+    - [yellow]Time-based[/yellow] delays (`--technique=T`)\n
+    - [blue]Out-of-band[/blue] with DNS exfiltration\n
+    [green]Pro Tip:[/green] Use `--risk=3 --level=5` for thorough tests\n
+    - Use [green]--risk[/green] and [green]--level[/green] for deeper tests.\n
+    - Always target authorized systems only.\n
+    : Example: `sqlmap -u http://target.com/page.php?id=1 --risk=3 --level=5`
+    """,
+    
+    "clearlogs": """
+    [bold]🧹 Log Cleaning Tip[/bold]\n
+    Targets common log locations:\n
+    - [red]/var/log/[/red] (syslog, auth.log)\n
+    - [yellow]~/.bash_history[/yellow]\n
+    - [blue]Journald[/blue] (`journalctl --vacuum-time=1s`)\n
+    [green]Warning:[/green] Some systems use remote logging!\n
+    Clearing logs should be used ethically. Logs are vital for:\n
+    - Forensics
+    - Intrusion Detection
+    - Compliance Audits
+    
+    """,
+    
+    "portsweep": """
+    [bold]🔎 Port Scanning Tip[/bold]\n
+    Advanced techniques:\n
+    - [red]SYN stealth scan[/red] (-sS)\n
+    - [yellow]Service version detection[/yellow] (-sV)\n
+    - [blue]OS fingerprinting[/blue] (-O)\n
+    [green]Pro Tip:[/green] Use `-T4` for faster scans (noisy)\n
+    : Port sweeps reveal exposed services.\n
+    - Scan with `-sS`, `-sV` flags in [green]nmap[/green] for stealth and version detection.
+    
+    """,
+    
+    "hashfile": """
+    [bold]🔐 Hashing Tip[/bold]\n
+    Why multiple hashes matter:\n
+    - [red]MD5[/red] - Fast but broken\n
+    - [yellow]SHA1[/yellow] - Deprecated but common\n
+    - [blue]SHA256[/blue] - Current standard\n
+    [green]Pro Tip:[/green] Verify against VirusTotal hashes\n
+    : Use SHA-256 for strong integrity checks.\n
+    Example: `sha256sum file.txt`
+    """,
+    
+    "sysinfo": """
+    [bold]🖥️ System Recon Tip[/bold]\n
+    Critical info to check:\n
+    - [red]Kernel version[/red] (uname -a)\n
+    - [yellow]CPU flags[/yellow] (/proc/cpuinfo)\n
+    - [blue]Sudo version[/blue] (CVE-2021-3156)\n
+    [green]Pro Tip:[/green] Check `lshw` for full hardware details\n
+    """,
+    
+    "killproc": """
+    [bold]💀 Process Killing Tip[/bold]\n
+    Advanced methods:\n
+    - [red]SIGKILL[/red] (-9) for stubborn processes\n
+    - [yellow]pkill[/yellow] for name-based termination\n
+    - [blue]killall[/blue] for all instances\n
+    [green]Warning:[/green] Can cause data loss!\n
+    """,
+    
+    "check integrity": """
+    [bold]🛡️ Integrity Check Tip[/bold]\n
+    Checks for:\n
+    - [red]Modified system binaries[/red] (ls, ps, netstat)\n
+    - [yellow]Unexpected setuid files[/yellow] (find / -perm -4000)\n
+    - [blue]Hidden kernel modules[/blue] (lsmod)\n
+    [green]Pro Tip:[/green] Compare against package manager (`rpm -V`)\n
+    """,
+    
+    "encrypt": """
+    [bold]🔒 Encryption Tip[/bold]\n
+    Best practices:\n
+    - Use [red]strong passwords[/red] (12+ chars, special symbols)\n
+    - Consider [yellow]GPG[/yellow] for asymmetric encryption\n
+    - [blue]Shred[/blue] original files after encryption\n
+    [green]Example:[/green] encrypt secret.docx\n
+    """,
+    
+    "decrypt": """
+    [bold]🔓 Decryption Tip[/bold]\n
+    Key management:\n
+    - Store keys in [red]separate secure location[/red]\n
+    - Use [yellow]key derivation functions[/yellow] (PBKDF2)\n
+    - Consider [blue]hardware tokens[/blue] for critical keys\n
+    [green]Syntax:[/green] decrypt file.enc myStrongPassword123!\n
+    """,
+    
+    "watchfolder": """
+    [bold]👀 Folder Monitoring Tip[/bold]\n
+    Detects:\n
+    - [red]New files[/red] (ransomware indicators)\n
+    - [yellow]Permission changes[/yellow] (chmod/chown)\n
+    - [blue]Hidden files[/blue] (dotfiles, double extensions)\n
+    [green]Pro Tip:[/green] Monitor /tmp and /dev/shm\n
+    """,
+    
+    "traceroute": """
+    [bold]🌐 Network Tracing Tip[/bold]\n
+    Advanced options:\n
+    - [red]TCP SYN[/red] probes (-T)\n
+    - [yellow]ICMP[/yellow] echo (-I)\n
+    - [blue]DNS lookups[/blue] (-n to disable)\n
+    [green]Pro Tip:[/green] Use mtr for continuous monitoring\n
+    """,
+    
+    "ransomwatch": """
+    [bold]💰 Ransomware Tip[/bold]\n
+    Detection signs:\n
+    - [red]Mass file renames[/red] (.enc, .locked)\n
+    - [yellow]Unusual process[/yellow] (encryption patterns)\n
+    - [blue]Bitcoin wallet[/blue] creation attempts\n
+    [green]Pro Tip:[/green] Monitor /home and network shares\n
+    """,
+    
+    "wificrack": """
+    [bold]📶 WiFi Auditing Tip[/bold]\n
+    Common attacks:\n
+    - [red]WPA2 handshake[/red] capture\n
+    - [yellow]Evil Twin[/yellow] access points\n
+    - [blue]KRACK[/blue] vulnerability tests\n
+    [green]Requires:[/green] Monitor mode capable adapter\n
+    """,
+    
+    "stegcheck": """
+    [bold]🖼️ Steganography Tip[/bold]\n
+    Detection methods:\n
+    - [red]Binwalk[/red] for embedded files\n
+    - [yellow]Stegdetect[/yellow] for common tools\n
+    - [blue]LSB analysis[/blue] with stegsolve\n
+    [green]Pro Tip:[/green] Check EXIF data first\n
+    """,
+    
+    "certcheck": """
+    [bold]🔖 SSL Cert Tip[/bold]\n
+    Critical checks:\n
+    - [red]Expiration date[/red]\n
+    - [yellow]Weak algorithms[/yellow] (SHA1, RC4)\n
+    - [blue]SAN mismatches[/blue]\n
+    [green]Pro Tip:[/green] Test with testssl.sh\n
+    """,
+    
+    "memdump": """
+    [bold]🧠 Memory Forensics Tip[/bold]\n
+    What to look for:\n
+    - [red]Process memory[/red] (passwords, keys)\n
+    - [yellow]Network connections[/yellow] (raw sockets)\n
+    - [blue]Malicious implants[/blue] (shellcode)\n
+    [green]Tool:[/green] Analyze with Volatility\n
+    """,
+    
+    "torify": """
+    [bold]🧅 Tor Networking Tip[/bold]\n
+    Important notes:\n
+    - [red]Not 100% anonymous[/red] (exit node risks)\n
+    - [yellow]DNS leaks[/yellow] still possible\n
+    - [blue]Bridge nodes[/blue] for censored networks\n
+    [green]Pro Tip:[/green] Combine with VPN (Tor-over-VPN)\n
+    """,
+    
+    "update": """
+    [bold]🔄 Update Tip[/bold]\n
+    Security benefits:\n
+    - Patches [red]zero-day vulnerabilities[/red]\n
+    - Fixes [yellow]privilege escalation[/yellow] bugs\n
+    - Updates [blue]malware signatures[/blue]\n
+    [green]Pro Tip:[/green] Subscribe to CVE alerts\n
+    """,
+    
+    "vt-scan": """
+    [bold]🦠 VirusTotal Tip[/bold]\n
+    Advanced features:\n
+    - [red]Behavioral analysis[/red] (sandbox)\n
+    - [yellow]Community insights[/yellow]\n
+    - [blue]YARA rule scanning[/blue]\n
+    [green]Warning:[/green] Files become public!\n
+    """,
+    
+    "registry -n mon": """
+    [bold]💾 Registry Monitoring Tip[/bold]\n
+    Critical keys to watch:\n
+    - [red]Run/RunOnce[/red] (persistence)\n
+    - [yellow]AppInit_DLLs[/yellow] (code injection)\n
+    - [blue]LSA secrets[/blue] (credential storage)\n
+    [green]Tool:[/green] Use RegShot for comparisons\n
+    """,
+
+    # Add more tips for other commands...
 }
 
 class SecurityTerminal:
@@ -188,11 +438,29 @@ class SecurityTerminal:
                 #     self.scan_complete.set()
                 #     spinner_thread.join()
                 #     print("[+] System scan completed at 100%")
+ 
+
+    def show_tip(self, command):
+        """Display educational tip for the executed command."""
+        if command in EDUCATION_TIPS:
+            tip = EDUCATION_TIPS[command]
+            console = Console()
+            console.print(
+                Align.center(
+                    Panel.fit(
+                        tip,
+                        title="[bold cyan]EDUCATIONAL TIP[/bold cyan]",
+                        border_style="blue",
+                        width=60,
+                    ),
+                    vertical="middle",
+                )
+            )
+        # displaying education tips code ends here
 
     def scan_system(self):
         """Enhanced system scanner with real-time progress and results display"""
      
-
     # Initialize console if not already done
         if not hasattr(self, 'console'):
             from rich.console import Console
@@ -457,154 +725,489 @@ class SecurityTerminal:
     #     console.print("\n[bold bright_green]✓ Network scan completed.[/bold bright_green]")
 
     # BELOW MACSPOOF CODE WORKING
+    # def spoof_mac(self, interface=None):
+    #     """Enhanced MAC spoofing with detailed debugging"""
+    #     print("\n[DEBUG] Starting macspoof command")  # Debug line 1
+    
+    # # 1. Admin check
+    #     if not self.is_admin():
+    #         print("[!] Requires admin privileges")
+    #         print("[DEBUG] Failed admin check")
+    #         return
+    
+    #     print("[DEBUG] Passed admin check")  # Debug line 2
+
+    # # 2. Interface detection
+    #     def get_active_interface():
+    #         print("[DEBUG] Starting interface detection")  # Debug line 3
+    #         try:
+    #             if platform.system() in ['Linux', 'Darwin']:
+    #                 print("[DEBUG] Trying Linux/Mac detection")
+    #                 route = subprocess.check_output("ip route show default", 
+    #                                             shell=True, 
+    #                                             stderr=subprocess.PIPE).decode()
+    #                 print(f"[DEBUG] Route output: {route.strip()}")  # Debug line 4
+    #                 if len(route.split()) >= 5:
+    #                     return route.split()[4]
+    #                 return None
+                
+    #             elif platform.system() == 'Windows':
+    #                 print("[DEBUG] Trying Windows detection")
+    #                 output = subprocess.check_output("getmac /v /fo csv", 
+    #                                             shell=True, 
+    #                                             stderr=subprocess.PIPE).decode()
+    #                 print(f"[DEBUG] Getmac output: {output.strip()}")  # Debug line 5
+    #                 lines = [l for l in output.split('\n') if l.strip()]
+    #                 if len(lines) > 1:
+    #                     return lines[1].split(',')[0].strip('"')
+    #                 return None
+                
+    #         except subprocess.CalledProcessError as e:
+    #             print(f"[DEBUG] Command failed: {e.stderr.decode().strip()}")
+    #             return None
+    #         except Exception as e:
+    #             print(f"[DEBUG] Detection error: {str(e)}")
+    #             return None
+
+    # # 3. Get interface
+    #     if not interface:
+    #         print("[DEBUG] Attempting auto-detection")  # Debug line 6
+    #         interface = get_active_interface()
+    #         if not interface:
+    #             print("[!] Could not detect active interface")
+    #             print("[DEBUG] Auto-detection failed")
+    #             return
+    
+    #     print(f"[DEBUG] Using interface: {interface}")  # Debug line 7
+
+    # # 4. MAC generation
+    #     new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
+    #         random.randint(0x00, 0x7f),
+    #         random.randint(0x00, 0xff),
+    #         random.randint(0x00, 0xff),
+    #         random.randint(0x00, 0xff),
+    #         random.randint(0x00, 0xff)
+    #     )
+    #     print(f"[DEBUG] Generated MAC: {new_mac}")  # Debug line 8
+
+    # # 5. Execution
+    #     try:
+    #         print(f"\n[+] Spoofing {interface} to {new_mac}")
+        
+    #         commands = []
+    #         if platform.system() in ['Linux', 'Darwin']:
+    #             commands = [
+    #                 f"ifconfig {interface} down",
+    #                 f"ifconfig {interface} hw ether {new_mac}",
+    #                 f"ifconfig {interface} up",
+    #                 f"dhclient -r {interface}",
+    #                 f"dhclient {interface}"
+    #             ]
+    #         elif platform.system() == 'Windows':
+    #             interface_key = interface.split('_')[-1]
+    #             commands = [
+    #                 f"netsh interface set interface \"{interface}\" admin=disable",
+    #                 f"reg add HKLM\SYSTEM\CurrentControlSet\Control\Class"
+    #                 f"\\{{4D36E972-E325-11CE-BFC1-08002BE10318}}"
+    #                 f"\\{interface_key} /v NetworkAddress /d {new_mac} /f",
+    #                 f"netsh interface set interface \"{interface}\" admin=enable"
+    #             ]
+        
+    #         print("[DEBUG] Commands to execute:")  # Debug line 9
+    #         for i, cmd in enumerate(commands, 1):
+    #             print(f"[DEBUG] {i}. {cmd}")
+            
+    #             result = subprocess.run(cmd, 
+    #                                 shell=True, 
+    #                                 capture_output=True, 
+    #                                 text=True)
+    #             if result.returncode != 0:
+    #                 print(f"[DEBUG] Command failed: {result.stderr.strip()}")
+            
+    #             time.sleep(0.5)
+        
+    #         print("[+] MAC address successfully changed")
+        
+    #     except Exception as e:
+    #         print(f"[!] MAC spoofing failed: {str(e)}")
+    
+    # # 6. Verification
+    #     self._verify_mac_change(interface, new_mac)
+
+    # def _verify_mac_change(self, interface, expected_mac):
+    #     """Enhanced verification with debugging"""
+    #     print("[DEBUG] Starting verification")  # Debug line 10
+    #     try:
+    #         if platform.system() in ['Linux', 'Darwin']:
+    #             result = subprocess.run(f"ifconfig {interface}",
+    #                                 shell=True,
+    #                                 capture_output=True,
+    #                                 text=True)
+    #             print(f"[DEBUG] ifconfig output: {result.stdout[:200]}...")  # Debug line 11
+    #             if expected_mac.lower() in result.stdout.lower():
+    #                 print("[✓] MAC verification successful")
+    #             else:
+    #                 print("[!] MAC verification failed")
+                
+    #         elif platform.system() == 'Windows':
+    #             result = subprocess.run("getmac /v /fo csv",
+    #                                 shell=True,
+    #                                 capture_output=True,
+    #                                 text=True)
+    #             print(f"[DEBUG] getmac output: {result.stdout.strip()}")  # Debug line 12
+    #             if expected_mac.lower() in result.stdout.lower():
+    #                 print("[✓] MAC verification successful")
+    #             else:
+    #                 print("[!] MAC verification failed")
+    
+    #     except Exception as e:
+    #         print(f"[DEBUG] Verification error: {str(e)}")
+
+    # ======end of macspoof
+
+# import random
+# import time
+# import platform
+# import subprocess
+# from rich.console import Console
+# from rich.panel import Panel
+# from rich.live import Live
+# from rich.text import Text
+# from rich.progress import Progress
+
+# class MacSpoofer:
+#     def __init__(self):
+#         self.console = Console()
+        
     def spoof_mac(self, interface=None):
-        """Enhanced MAC spoofing with detailed debugging"""
-        print("\n[DEBUG] Starting macspoof command")  # Debug line 1
-    
-    # 1. Admin check
-        if not self.is_admin():
-            print("[!] Requires admin privileges")
-            print("[DEBUG] Failed admin check")
-            return
-    
-        print("[DEBUG] Passed admin check")  # Debug line 2
-
-    # 2. Interface detection
-        def get_active_interface():
-            print("[DEBUG] Starting interface detection")  # Debug line 3
-            try:
-                if platform.system() in ['Linux', 'Darwin']:
-                    print("[DEBUG] Trying Linux/Mac detection")
-                    route = subprocess.check_output("ip route show default", 
-                                                shell=True, 
-                                                stderr=subprocess.PIPE).decode()
-                    print(f"[DEBUG] Route output: {route.strip()}")  # Debug line 4
-                    if len(route.split()) >= 5:
-                        return route.split()[4]
-                    return None
-                
-                elif platform.system() == 'Windows':
-                    print("[DEBUG] Trying Windows detection")
-                    output = subprocess.check_output("getmac /v /fo csv", 
-                                                shell=True, 
-                                                stderr=subprocess.PIPE).decode()
-                    print(f"[DEBUG] Getmac output: {output.strip()}")  # Debug line 5
-                    lines = [l for l in output.split('\n') if l.strip()]
-                    if len(lines) > 1:
-                        return lines[1].split(',')[0].strip('"')
-                    return None
-                
-            except subprocess.CalledProcessError as e:
-                print(f"[DEBUG] Command failed: {e.stderr.decode().strip()}")
-                return None
-            except Exception as e:
-                print(f"[DEBUG] Detection error: {str(e)}")
-                return None
-
-    # 3. Get interface
-        if not interface:
-            print("[DEBUG] Attempting auto-detection")  # Debug line 6
-            interface = get_active_interface()
-            if not interface:
-                print("[!] Could not detect active interface")
-                print("[DEBUG] Auto-detection failed")
+        """Enhanced MAC spoofing with interactive visualization"""
+        debug_messages = []
+        status_updates = []
+        
+        def add_debug(msg):
+            debug_messages.append(f"[dim][DEBUG][/dim] {msg}")
+            
+        def add_status(msg, style=""):
+            status_updates.append(f"[{style}]{msg}[/{style}]")
+        
+        # Create panels for live display
+        def generate_display():
+            debug_panel = Panel(
+                "\n".join(debug_messages[-10:]),
+                title="[blue]Debug Console[/blue]",
+                border_style="blue",
+                height=20
+            )
+            
+            status_panel = Panel(
+                "\n".join(status_updates[-10:]),
+                title="[green]Status Updates[/green]",
+                border_style="green",
+                height=20
+            )
+            
+            animation = self._generate_animation_frame()
+            
+            return Columns([debug_panel, status_panel, animation])
+        
+        # Start live display
+        with Live(generate_display(), refresh_per_second=4) as live:
+            # 1. Admin check
+            add_debug("Starting macspoof command")
+            if not self.is_admin():
+                add_status("✖ Requires admin privileges", "red")
+                add_debug("Failed admin check")
                 return
-    
-        print(f"[DEBUG] Using interface: {interface}")  # Debug line 7
-
-    # 4. MAC generation
-        new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
-            random.randint(0x00, 0x7f),
-            random.randint(0x00, 0xff),
-            random.randint(0x00, 0xff),
-            random.randint(0x00, 0xff),
-            random.randint(0x00, 0xff)
-        )
-        print(f"[DEBUG] Generated MAC: {new_mac}")  # Debug line 8
-
-    # 5. Execution
-        try:
-            print(f"\n[+] Spoofing {interface} to {new_mac}")
-        
-            commands = []
-            if platform.system() in ['Linux', 'Darwin']:
-                commands = [
-                    f"ifconfig {interface} down",
-                    f"ifconfig {interface} hw ether {new_mac}",
-                    f"ifconfig {interface} up",
-                    f"dhclient -r {interface}",
-                    f"dhclient {interface}"
-                ]
-            elif platform.system() == 'Windows':
-                interface_key = interface.split('_')[-1]
-                commands = [
-                    f"netsh interface set interface \"{interface}\" admin=disable",
-                    f"reg add HKLM\SYSTEM\CurrentControlSet\Control\Class"
-                    f"\\{{4D36E972-E325-11CE-BFC1-08002BE10318}}"
-                    f"\\{interface_key} /v NetworkAddress /d {new_mac} /f",
-                    f"netsh interface set interface \"{interface}\" admin=enable"
-                ]
-        
-            print("[DEBUG] Commands to execute:")  # Debug line 9
-            for i, cmd in enumerate(commands, 1):
-                print(f"[DEBUG] {i}. {cmd}")
             
-                result = subprocess.run(cmd, 
-                                    shell=True, 
-                                    capture_output=True, 
-                                    text=True)
-                if result.returncode != 0:
-                    print(f"[DEBUG] Command failed: {result.stderr.strip()}")
+            add_status("✔ Passed admin privileges check", "green")
+            add_debug("Passed admin check")
             
-                time.sleep(0.5)
-        
-            print("[+] MAC address successfully changed")
-        
-        except Exception as e:
-            print(f"[!] MAC spoofing failed: {str(e)}")
+            # 2. Interface detection
+            def get_active_interface():
+                add_debug("Starting interface detection")
+                try:
+                    if platform.system() in ['Linux', 'Darwin']:
+                        add_debug("Trying Linux/Mac detection")
+                        route = subprocess.check_output("ip route show default", 
+                                                    shell=True, 
+                                                    stderr=subprocess.PIPE).decode()
+                        add_debug(f"Route output: {route.strip()}")
+                        if len(route.split()) >= 5:
+                            return route.split()[4]
+                        return None
+                    
+                    elif platform.system() == 'Windows':
+                        add_debug("Trying Windows detection")
+                        output = subprocess.check_output("getmac /v /fo csv", 
+                                                    shell=True, 
+                                                    stderr=subprocess.PIPE).decode()
+                        add_debug(f"Getmac output: {output.strip()}")
+                        lines = [l for l in output.split('\n') if l.strip()]
+                        if len(lines) > 1:
+                            return lines[1].split(',')[0].strip('"')
+                        return None
+                    
+                except subprocess.CalledProcessError as e:
+                    add_debug(f"Command failed: {e.stderr.decode().strip()}")
+                    return None
+                except Exception as e:
+                    add_debug(f"Detection error: {str(e)}")
+                    return None
+            
+            # 3. Get interface
+            if not interface:
+                add_debug("Attempting auto-detection")
+                interface = get_active_interface()
+                if not interface:
+                    add_status("✖ Could not detect active interface", "red")
+                    add_debug("Auto-detection failed")
+                    return
+            
+            add_status(f"✔ Using interface: [bold]{interface}[/bold]", "green")
+            add_debug(f"Using interface: {interface}")
+            
+            # 4. MAC generation
+            new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
+                random.randint(0x00, 0x7f),
+                random.randint(0x00, 0xff),
+                random.randint(0x00, 0xff),
+                random.randint(0x00, 0xff),
+                random.randint(0x00, 0xff)
+            )
+            add_status(f"Generated new MAC: [bold]{new_mac}[/bold]", "yellow")
+            add_debug(f"Generated MAC: {new_mac}")
+            
+            # 5. Execution with progress
+            try:
+                add_status(f"\n[!] Spoofing [bold]{interface}[/bold] to [bold]{new_mac}[/bold]", "bold yellow")
+                
+                commands = []
+                if platform.system() in ['Linux', 'Darwin']:
+                    commands = [
+                        f"ifconfig {interface} down",
+                        f"ifconfig {interface} hw ether {new_mac}",
+                        f"ifconfig {interface} up",
+                        f"dhclient -r {interface}",
+                        f"dhclient {interface}"
+                    ]
+                elif platform.system() == 'Windows':
+                    interface_key = interface.split('_')[-1]
+                    commands = [
+                        f"netsh interface set interface \"{interface}\" admin=disable",
+                        f"reg add HKLM\SYSTEM\CurrentControlSet\Control\Class"
+                        f"\\{{4D36E972-E325-11CE-BFC1-08002BE10318}}"
+                        f"\\{interface_key} /v NetworkAddress /d {new_mac} /f",
+                        f"netsh interface set interface \"{interface}\" admin=enable"
+                    ]
+                
+                add_debug("Commands to execute:")
+                for i, cmd in enumerate(commands, 1):
+                    add_debug(f"{i}. {cmd}")
+                    
+                    # Show command execution progress
+                    with Progress(transient=True) as progress:
+                        task = progress.add_task(f"[cyan]Executing: {cmd[:30]}...", total=100)
+                        for _ in range(100):
+                            time.sleep(0.02)
+                            progress.update(task, advance=1)
+                            live.update(generate_display())
+                    
+                    result = subprocess.run(cmd, 
+                                        shell=True, 
+                                        capture_output=True, 
+                                        text=True)
+                    if result.returncode != 0:
+                        add_debug(f"Command failed: {result.stderr.strip()}")
+                    
+                    time.sleep(0.5)
+                    live.update(generate_display())
+                
+                add_status("✔ MAC address successfully changed", "bold green")
+                
+            except Exception as e:
+                add_status(f"✖ MAC spoofing failed: {str(e)}", "red")
+            
+            # 6. Verification
+            self._verify_mac_change(interface, new_mac, add_debug, add_status)
+            live.update(generate_display())
     
-    # 6. Verification
-        self._verify_mac_change(interface, new_mac)
-
-    def _verify_mac_change(self, interface, expected_mac):
-        """Enhanced verification with debugging"""
-        print("[DEBUG] Starting verification")  # Debug line 10
+    def _verify_mac_change(self, interface, expected_mac, debug_cb, status_cb):
+        """Enhanced verification with callbacks"""
+        debug_cb("Starting verification")
         try:
             if platform.system() in ['Linux', 'Darwin']:
                 result = subprocess.run(f"ifconfig {interface}",
                                     shell=True,
                                     capture_output=True,
                                     text=True)
-                print(f"[DEBUG] ifconfig output: {result.stdout[:200]}...")  # Debug line 11
+                debug_cb(f"ifconfig output: {result.stdout[:200]}...")
                 if expected_mac.lower() in result.stdout.lower():
-                    print("[✓] MAC verification successful")
+                    status_cb("✓ MAC verification successful", "bold green")
                 else:
-                    print("[!] MAC verification failed")
+                    status_cb("✖ MAC verification failed", "red")
                 
             elif platform.system() == 'Windows':
                 result = subprocess.run("getmac /v /fo csv",
                                     shell=True,
                                     capture_output=True,
                                     text=True)
-                print(f"[DEBUG] getmac output: {result.stdout.strip()}")  # Debug line 12
+                debug_cb(f"getmac output: {result.stdout.strip()}")
                 if expected_mac.lower() in result.stdout.lower():
-                    print("[✓] MAC verification successful")
+                    status_cb("✓ MAC verification successful", "bold green")
                 else:
-                    print("[!] MAC verification failed")
-    
+                    status_cb("✖ MAC verification failed", "red")
+        
         except Exception as e:
-            print(f"[DEBUG] Verification error: {str(e)}")
+            debug_cb(f"Verification error: {str(e)}")
+    
+    def _generate_animation_frame(self):
+        """Generate animated hacking visualization"""
+        frames = [
+            Text("""
+            █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █░░▒▒██▒██▒▒██▒██▒▒░░█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █░░▒▒▒▄▄▄▄▒▒▄▄▄▄▒▒▒░░█
+            █░░▒▒▒▒▀▀▀▒▒▀▀▀▒▒▒▒░░█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
+            """),
+            Text("""
+            █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █░░▒▒▒▒██▒██▒▒██▒██▒░░█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █░░▒▒▄▄▄▄▒▒▒▒▄▄▄▄▒▒▒░░█
+            █░░▒▒▀▀▀▒▒▒▒▒▀▀▀▒▒▒░░█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
+            """),
+            Text("""
+            █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █░░▒██▒██▒▒▒▒██▒██▒▒░░█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █░░▒▄▄▄▄▒▒▒▒▒▒▄▄▄▄▒░░█
+            █░░▒▀▀▀▒▒▒▒▒▒▒▒▀▀▀▒▒░░█
+            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
+            █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
+            """)
+        ]
+        return Panel(
+            frames[int(time.time() * 4) % len(frames)],
+            title="[red]MAC Spoofer[/red]",
+            border_style="red"
+        )
+    
+    def is_admin(self):
+        """Check for admin privileges"""
+        try:
+            if platform.system() == 'Windows':
+                import ctypes
+                return ctypes.windll.shell32.IsUserAnAdmin() != 0
+            else:
+                return os.getuid() == 0
+        except:
+            return False
 
-    # ======end of macspoof
+# end of animated
+    def sql_injection_scan(self, url=None):
+        console = Console()
+    
+    # Get URL if not provided
+        if not url:
+            url = input("Enter target URL (include http:// or https://): ").strip()
+    
+        if not url.startswith(("http://", "https://")):
+            console.print("[red][!] Invalid URL format (must include http:// or https://)[/red]")
+            return
 
-    def sql_injection_scan(self, url):
-        if "http" in url:
-            print(f"\n[+] Starting SQLi scan on {url}...")
-            print("[*] Simulating SQLMap scan (install sqlmap for real scanning)")
-            print("Potential vulnerabilities found: 2")
+    # Check if sqlmap is installed
+        if not which("sqlmap"):
+            console.print(Panel(
+                "[red]sqlmap not found![/red]\n"
+                "Install it with:\n"
+                "[green]git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git[/green]\n"
+                "or visit [blue]https://sqlmap.org[/blue]",
+                title="Required Dependency Missing"
+            ))
+            return
+
+        console.print(f"\n[green][+] Starting SQLi scan on {url}[/green]")
+        console.print("[yellow][*] This may take several minutes...[/yellow]\n")
+
+    # Prepare sqlmap command
+        cmd = [
+            "sqlmap",
+            "-u", url,
+            "--batch",  # Non-interactive
+            "--risk=3",  # Higher risk level
+            "--level=5",  # Thorough testing
+            "--crawl=1",  # Limited crawling
+            "--random-agent",
+            "--output-dir=./sqlmap_results"
+        ]
+
+    # Create progress display
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            console=console,
+            transient=True
+        ) as progress:
+            task = progress.add_task("[cyan]Scanning...", total=100)
+        
+        # Run sqlmap in background
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+        
+        # Simulate progress while process runs
+            while process.poll() is None:
+                time.sleep(0.1)
+                progress.update(task, advance=0.5)
+                if progress.tasks[0].percentage >= 100:
+                    progress.update(task, completed=99)
+
+            progress.update(task, completed=100)
+
+    # Parse results
+        result_file = f"./sqlmap_results/{url.replace('://', '_').replace('/', '_')}/log"
+        vulnerabilities = []
+    
+        if os.path.exists(result_file):
+            with open(result_file, 'r') as f:
+                for line in f:
+                    if "Parameter:" in line:
+                        vulnerabilities.append(line.strip())
+                    elif "Type:" in line and "Title:" not in line:
+                        vulnerabilities.append(line.strip())
+
+    # Display results
+        if vulnerabilities:
+            console.print("\n[red][!] VULNERABILITIES FOUND:[/red]")
+            for vuln in vulnerabilities:
+                console.print(f" - {vuln}")
+        
+            console.print(Panel(
+                f"Found [red]{len(vulnerabilities)}[/red] potential injection points\n"
+                "Full report saved in [blue]./sqlmap_results/[/blue]",
+                title="Scan Complete",
+                style="red"
+            ))
+ 
         else:
-            print("[!] Invalid URL format (include http://)")
-
+            console.print(Panel(
+                "No SQL injection vulnerabilities detected",
+                title="Scan Complete",
+                style="green"
+            ))
+ 
     # ==================== UTILITY METHODS ====================
     def clear_logs(self):
         """Securely clear system logs"""
@@ -1221,29 +1824,59 @@ class SecurityTerminal:
 
 
     # clearing the terminal code starts here
+    # def clear_terminal(self):
+    #     console = Console()
+    #     with Live(console=console, refresh_per_second=10, screen=True) as live:
+    #         for i in range(1, 6):
+    #             cleanup_panel = Panel(
+    #                 Align.center(
+    #                     f"[bold cyan]→ Cleaning stage {i}/5...\n[blink]✶✶✶[/blink]", vertical="middle"),
+    #                 title="[bold bright_cyan]TERMINAL SANITIZATION[/bold bright_cyan]",
+    #                 border_style="cyan",
+    #                 padding=(2, 4),
+    #                 width=60
+    #             )
+    #             live.update(Align.center(cleanup_panel, vertical="middle"))
+    #             time.sleep(1.5)
+
+    #     os.system('clear' if os.name == 'posix' else 'cls')
+    #     console.print(
+    #         Panel.fit(
+    #             "[bold blue]✔ Terminal workspace sanitized successfully![/bold blue]",
+    #             border_style="purple",
+    #             width=50
+    #         )
+    #     )
     def clear_terminal(self):
         console = Console()
-        with Live(console=console, refresh_per_second=10, screen=True) as live:
-            for i in range(1, 6):
-                cleanup_panel = Panel(
-                    Align.center(
-                        f"[bold cyan]→ Cleaning stage {i}/5...\n[blink]✶✶✶[/blink]", vertical="middle"),
-                    title="[bold bright_cyan]TERMINAL SANITIZATION[/bold bright_cyan]",
-                    border_style="cyan",
-                    padding=(2, 4),
-                    width=60
-                )
-                live.update(Align.center(cleanup_panel, vertical="middle"))
-                time.sleep(1.5)
 
-        os.system('clear' if os.name == 'posix' else 'cls')
-        console.print(
-            Panel.fit(
-                "[bold blue]✔ Terminal workspace sanitized successfully![/bold blue]",
-                border_style="purple",
-                width=50
-            )
+        panel = Panel(
+            Align.center("[cyan]Resetting interface...[/cyan]", vertical="middle"),
+            title="[bold white]TERMINAL WIPE[/bold white]",
+            border_style="bright_cyan",
+            padding=(1, 2),
+            width=50
         )
+
+        with Live(console=console, refresh_per_second=5, screen=True) as live:
+            for i in range(3):
+                live.update(panel)
+                time.sleep(0.5)
+
+        os.system("clear" if platform.system() != "Windows" else "cls")
+
+        banner = """
+        ╔═══════════════════════════════════════════════════════════════════============═══╗
+            ██████╗ ███████╗███████╗███████╗███╗   ██╗███████╗██╗  ██╗
+            ██╔══██╗██╔════╝██╔════╝██╔════╝████╗  ██║██╔════╝╚██╗██╔╝
+            ██║  ██║█████╗  █████╗  █████╗  ██╔██╗ ██║█████╗   ╚███╔╝ 
+            ██║  ██║██╔══╝  ██╔══╝  ██╔══╝  ██║╚██╗██║██╔══╝   ██╔██╗ 
+            ██████╔╝██║     ██║     ███████╗██║ ╚████║███████╗██╔╝ ██╗
+            ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+        ╚════════════════════════════════════════════════════════════════════============══╝
+        """
+        console.print(f"[bold cyan]{banner}[/bold cyan]")
+
 
     # cleaning terminal ends here
 
@@ -1270,62 +1903,161 @@ class SecurityTerminal:
 
 # uncomment the code below for shutting down==============================
 
-    def emergency_shutdown(self):
-        console = Console()
-        warning_panel = Panel(
-            Align.center(
-                "[bold red]⚠ WARNING: This will initiate an IMMEDIATE SYSTEM SHUTDOWN.[/bold red]\n\n"
-                "[yellow]Type [bold]'CONFIRM'[/bold] to proceed or anything else to cancel.[/yellow]",
-                vertical="middle"
-            ),
-            title="[bold red]EMERGENCY SHUTDOWN MODE[/bold red]",
-            border_style="bright_red",
-            width=72,
-            padding=(2, 4),
-        )
-        console.print(Align.center(warning_panel, vertical="middle"))
+    # def emergency_shutdown(self):
+    #     console = Console()
+    #     warning_panel = Panel(
+    #         Align.center(
+    #             "[bold red]⚠ WARNING: This will initiate an IMMEDIATE SYSTEM SHUTDOWN.[/bold red]\n\n"
+    #             "[yellow]Type [bold]'CONFIRM'[/bold] to proceed or anything else to cancel.[/yellow]",
+    #             vertical="middle"
+    #         ),
+    #         title="[bold red]EMERGENCY SHUTDOWN MODE[/bold red]",
+    #         border_style="bright_red",
+    #         width=72,
+    #         padding=(2, 4),
+    #     )
+    #     console.print(Align.center(warning_panel, vertical="middle"))
     
-        user_input = Prompt.ask("[bold red]>>> Confirm Shutdown[/bold red]").strip().upper()
-        if user_input != "CONFIRM":
-            console.print(
-                Panel.fit(
-                    "[bold green]✔ Shutdown cancelled. You're safe.[/bold green]",
-                    border_style="green",
-                    width=50
-                )
-            )
-            return
+    #     user_input = Prompt.ask("[bold red]>>> Confirm Shutdown[/bold red]").strip().upper()
+    #     if user_input != "CONFIRM":
+    #         console.print(
+    #             Panel.fit(
+    #                 "[bold green]✔ Shutdown cancelled. You're safe.[/bold green]",
+    #                 border_style="green",
+    #                 width=50
+    #             )
+    #         )
+    #         return
 
-        # Animated progress bar
-        progress = Progress(
-            SpinnerColumn(style="bold red"),
-            BarColumn(bar_width=None),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TextColumn("[bold red]Shutting down system..."),
-            expand=True,
-        )
+    #     # Animated progress bar
+    #     progress = Progress(
+    #         SpinnerColumn(style="bold red"),
+    #         BarColumn(bar_width=None),
+    #         TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+    #         TextColumn("[bold red]Shutting down system..."),
+    #         expand=True,
+    #     )
 
-        with Live(console=console, refresh_per_second=20, screen=True) as live:
-            task = progress.add_task("shutdown", total=100)
-            for percent in range(0, 101, 5):
-                panel = Panel(
-                    Align.center(progress, vertical="middle"),
-                    title="[bold red]SYSTEM SHUTDOWN IN PROGRESS...[/bold red]",
-                    border_style="red",
-                    padding=(2, 4),
-                    width=70,
-                )
-                progress.update(task, completed=percent)
-                live.update(Align.center(panel, vertical="middle"))
-                time.sleep(0.15)
+    #     with Live(console=console, refresh_per_second=20, screen=True) as live:
+    #         task = progress.add_task("shutdown", total=100)
+    #         for percent in range(0, 101, 5):
+    #             panel = Panel(
+    #                 Align.center(progress, vertical="middle"),
+    #                 title="[bold red]SYSTEM SHUTDOWN IN PROGRESS...[/bold red]",
+    #                 border_style="red",
+    #                 padding=(2, 4),
+    #                 width=70,
+    #             )
+    #             progress.update(task, completed=percent)
+    #             live.update(Align.center(panel, vertical="middle"))
+    #             time.sleep(0.15)
 
-        console.print(
-            Panel.fit("[bold red]System is shutting down now...[/bold red]", border_style="red", width=50)
-        )
-        os.system("sudo shutdown now")
+    #     console.print(
+    #         Panel.fit("[bold red]System is shutting down now...[/bold red]", border_style="red", width=50)
+    #     )
+    #     os.system("sudo shutdown now")
+
 
     # code shutdwon ends here and uncomment the code above
   
+#   =================testing code for shutdown starts here going below
+
+    # def emergency_shutdown(self):
+    #     console = Console()
+
+    #     countdown_panel = Panel(
+    #         Align.center("[bold red]⚠ EMERGENCY SHUTDOWN INITIATED ⚠[/bold red]", vertical="middle"),
+    #         title="[red bold]SYSTEM OVERRIDE[/red bold]",
+    #         border_style="red",
+    #         padding=(1, 4),
+    #         width=60
+    #     )
+
+    #     with Live(console=console, refresh_per_second=4, screen=True) as live:
+    #         for i in reversed(range(1, 6)):
+    #             live.update(Panel(f"[bold red]Shutting down in {i} seconds...[/bold red]", border_style="bright_red", width=60))
+    #             time.sleep(1)
+    #         live.update(countdown_panel)
+    #         time.sleep(1)
+
+    #     console.print("[bold red]Powering down system...[/bold red]")
+    #     time.sleep(1)
+
+    #     if platform.system() == "Linux":
+    #         os.system("sudo shutdown now")
+    #     elif platform.system() == "Windows":
+    #         os.system("shutdown /s /t 0")
+    #     else:
+    #         console.print("[yellow]Unsupported OS for shutdown command.[/yellow]")
+    def emergency_shutdown(self):
+        console = Console()
+
+        def authenticate():
+            console.print("\n[bold yellow]Authentication Required:[/bold yellow] Confirm emergency shutdown.")
+            response = Prompt.ask("Type [red]YES[/red] to confirm", default="NO")
+            return response.strip().lower() == "yes"
+
+        if not authenticate():
+            console.print("\n[bold cyan]Shutdown aborted.[/bold cyan]")
+            return
+
+        countdown_panel = Panel(
+            Align.center("[bold red]\u26a0 EMERGENCY SHUTDOWN INITIATED \u26a0[/bold red]", vertical="middle"),
+            title="[red bold]SYSTEM OVERRIDE[/red bold]",
+            border_style="red",
+            padding=(1, 4),
+            width=60
+        )
+
+        with Live(console=console, refresh_per_second=4, screen=True) as live:
+            for i in reversed(range(1, 16)):
+                live.update(Panel(f"[bold red]Shutting down in {i} seconds...[/bold red]", border_style="bright_red", width=60))
+                time.sleep(1)
+            live.update(countdown_panel)
+            time.sleep(1)
+
+        console.print("[bold red]Powering down system...[/bold red]")
+        time.sleep(1)
+
+        if platform.system() == "Linux":
+            os.system("sudo shutdown now")
+        elif platform.system() == "Windows":
+            os.system("shutdown /s /t 0")
+        else:
+            console.print("[yellow]Unsupported OS for shutdown command.[/yellow]")
+
+# shutting down ends here
+    def clear_terminal(self):
+        console = Console()
+
+        panel = Panel(
+            Align.center("[cyan]Resetting interface...[/cyan]", vertical="middle"),
+            title="[bold white]TERMINAL WIPE[/bold white]",
+            border_style="bright_cyan",
+            padding=(1, 2),
+            width=50
+        )
+
+        with Live(console=console, refresh_per_second=5, screen=True) as live:
+            for i in range(10):
+                live.update(Panel(f"[cyan]Wiping in progress... {10 - i}[/cyan]", title="[bold]CLEANING TERMINAL[/bold]", border_style="bright_cyan", width=50))
+                time.sleep(1)
+
+        os.system("clear" if platform.system() != "Windows" else "cls")
+
+        banner = """
+            ██████╗ ███████╗███████╗███████╗███╗   ██╗███████╗██╗  ██╗
+            ██╔══██╗██╔════╝██╔════╝██╔════╝████╗  ██║██╔════╝╚██╗██╔╝
+            ██║  ██║█████╗  █████╗  █████╗  ██╔██╗ ██║█████╗   ╚███╔╝ 
+            ██║  ██║██╔══╝  ██╔══╝  ██╔══╝  ██║╚██╗██║██╔══╝   ██╔██╗ 
+            ██████╔╝██║     ██║     ███████╗██║ ╚████║███████╗██╔╝ ██╗
+            ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+        """
+        centered_banner = Align.center(f"[bold cyan]{banner}[/bold cyan]", vertical="middle")
+        console.print(centered_banner)
+
+
+# =======testing code from above ends here for shutdown command
     def vt_scan_menu(self):
         """Enhanced VirusTotal scanning interface"""
         print("\n[VirusTotal Scanner]")
@@ -1984,17 +2716,21 @@ class SecurityTerminal:
     # Original commands (scan, netmon, etc.)
         elif cmd == "scan -t -w system -all":
             self.scan_system()
+            self.show_tip(cmd)
         elif cmd == "net -n mon":
             self.network_monitor()
+            self.show_tip(cmd)
 
         # ===================================
 
     #  for clear command to clean terminal
         elif cmd == "clear terminal":
             self.clear_terminal()
+            self.show_tip(cmd)
 
         elif cmd == "clear":
             self.clear_terminal()
+            self.show_tip(cmd)
         elif cmd == "shutdown":
             self.emergency_shutdown()
     
@@ -2003,51 +2739,68 @@ class SecurityTerminal:
     # exploit check and mac address change
         elif cmd == "exploitcheck": 
             self.check_exploits()
+            self.show_tip(cmd)
         elif cmd.startswith("macspoof"): 
             self.spoof_mac(cmd.split()[1] if len(cmd.split()) > 1 else "eth0")
+            self.show_tip(cmd)
 
     #  sqlmap and log clearing
         elif cmd.startswith("sqlmap"): 
             self.sql_injection_scan(cmd.split()[1] if len(cmd.split()) > 1 else input("Target URL: "))
+            self.show_tip(cmd)
         elif cmd == "clearlogs": 
             self.clear_logs()
+            self.show_tip(cmd)
 
     # portsweep and hashing file commands
         elif cmd.startswith("portsweep"): 
             target = cmd.split()[1] if len(cmd.split()) > 1 else "127.0.0.1"
             self.port_scan(target)
+            self.show_tip(cmd)
         elif cmd.startswith("hashfile"): 
             self.hash_file(cmd.split()[1] if len(cmd.split()) > 1 else input("File path: "))
+            self.show_tip(cmd)
 
     #  system information detailed part and force killing of running processes
         elif cmd == "sysinfo": 
             self.system_info()
+            self.show_tip(cmd)
         elif cmd.startswith("killproc"): 
             self.kill_process(int(cmd.split()[1])) if len(cmd.split()) > 1 else print("Usage: killproc PID")
+            self.show_tip(cmd)
 
     # ==================check integrity and encrypt or decrypt files/folders
         elif cmd == "check integrity": 
             self.check_integrity()
+            self.show_tip(cmd)
         elif cmd.startswith("encrypt"): 
             self.encrypt_file(cmd.split()[1] if len(cmd.split()) > 1 else input("File to encrypt: "))
+            self.show_tip(cmd)
         elif cmd.startswith("decrypt"): 
             args = cmd.split()
             if len(args) > 2: 
                 self.decrypt_file(args[1], args[2])
+                self.show_tip(cmd)
             else: 
                 print("Usage: decrypt FILE.enc KEY")
+                
 
     # =====================================
         elif cmd.startswith("watchfolder"): 
             self.watch_folder(cmd.split()[1] if len(cmd.split()) > 1 else ".")
+            self.show_tip(cmd)
         elif cmd.startswith("traceroute"): 
             self.trace_route(cmd.split()[1] if len(cmd.split()) > 1 else "8.8.8.8")
+            self.show_tip(cmd)
         elif cmd == "ransomwatch": 
             self.monitor_ransomware()
+            self.show_tip(cmd)
         elif cmd.startswith("wificrack"): 
             self.wifi_audit(cmd.split()[1] if len(cmd.split()) > 1 else "wlan0")
+            self.show_tip(cmd)
         elif cmd.startswith("stegcheck"): 
             self.check_steganography(cmd.split()[1] if len(cmd.split()) > 1 else input("Image path: "))
+            self.show_tip(cmd)
         # elif cmd.startswith("certcheck"): 
         #     self.check_ssl(cmd.split()[1] if len(cmd.split()) > 1 else "google.com")
 
@@ -2056,21 +2809,28 @@ class SecurityTerminal:
             if len(cmd.split()) > 1:
                 domain = cmd.split()[1]
                 self.check_ssl(domain)
+                self.show_tip(cmd)
             else:
                 self.check_ssl()  # Will prompt for domain inside the method
 
         elif cmd == "memdump": 
             self.dump_memory()
+            self.show_tip(cmd)
         elif cmd == "torify": 
             self.enable_tor_routing()
+            self.show_tip(cmd)
         elif cmd == "update": 
             print(f"\n[+] {self.check_updates()}")
+            self.show_tip(cmd)
         elif cmd == "vt-scan": 
             self.vt_scan_menu()
+            self.show_tip(cmd)
         elif cmd == "registry -n mon": 
             print(self.monitor_registry())
+            self.show_tip(cmd)
         elif cmd == "harden -t sys": 
             self.harden_system()
+            self.show_tip(cmd)
         elif cmd == "help": 
             self.show_help()
         elif cmd == "exit": 
@@ -2078,6 +2838,7 @@ class SecurityTerminal:
             sys.exit(0)
         else: 
             print("[!] Unknown command. Type 'help' for more command options.")
+            self.show_tip(cmd)  # <-- Add this line at the end
 
     # ==================== HELP MENU ====================
     def show_help(self):
@@ -2117,6 +2878,14 @@ class SecurityTerminal:
     
     === Web Security ========
     sqlmap [URL]                                        - SQL injection scan
+                                                        - "-u", url,
+                                                        - "--batch",  # Non-interactive
+                                                        - "--risk=3",  # Higher risk level
+                                                        - "--level=5",  # Thorough testing
+                                                        - "--crawl=1",  # Limited crawling
+                                                        - "--random-agent",
+                                                        - "--output-dir=./sqlmap_results"
+
     certcheck [DOMAIN]                                  - SSL certificate audit
     
     === Monitoring ==========

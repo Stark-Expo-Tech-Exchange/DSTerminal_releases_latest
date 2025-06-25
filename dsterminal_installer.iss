@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=DSTerminal
-AppVersion=v2.0.0
+AppVersion=v2.00.00
 AppPublisher=Stark Expo Tech Exchange
 AppPublisherURL=https://starkexpotechexchange-mw.com
 DefaultDirName={pf}\DSTerminal

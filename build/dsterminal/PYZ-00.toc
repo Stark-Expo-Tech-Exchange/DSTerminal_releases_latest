@@ -1,4 +1,4 @@
-('/home/sparkwilsonspink/Desktop/DSTerminal/build/dsterminal/PYZ-00.pyz',
+('/home/sparkwilsonspink/Desktop/ForUpdatesDSTerminal1/build/dsterminal/PYZ-00.pyz',
  [('OpenSSL',
    '/home/sparkwilsonspink/Desktop/DSTerminal/dst_env/lib/python3.11/site-packages/OpenSSL/__init__.py',
    'PYMODULE'),
