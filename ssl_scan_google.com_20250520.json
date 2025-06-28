@@ -1,9 +1,0 @@
-{
-  "domain": "google.com",
-  "scan_date": "2025-05-20T17:54:46.681933",
-  "protocol": "TLSv1.3",
-  "cipher": "TLS_AES_256_GCM_SHA384",
-  "certificate": {},
-    "subject": {}
-}
-      

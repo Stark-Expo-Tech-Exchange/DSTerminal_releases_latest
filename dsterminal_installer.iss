@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=DSTerminal
-AppVersion=v2.00.00
+AppVersion=v2.1.0
 AppPublisher=Stark Expo Tech Exchange
 AppPublisherURL=https://starkexpotechexchange-mw.com
 DefaultDirName={pf}\DSTerminal
@@ -17,7 +17,6 @@ WizardStyle=modern
 SetupIconFile=icon.ico
 DisableProgramGroupPage=yes
 AllowNoIcons=yes
-LicenseFile=LICENSE.txt
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

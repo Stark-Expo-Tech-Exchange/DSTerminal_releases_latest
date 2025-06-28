@@ -1,8 +1,0 @@
-{
-  "domain": "unima.ac.mw",
-  "scan_date": "2025-06-08T17:29:42.840563",
-  "protocol": "TLSv1.2",
-  "cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-  "certificate": {
-    "subject": {
-      

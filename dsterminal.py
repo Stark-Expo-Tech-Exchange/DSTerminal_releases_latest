@@ -62,7 +62,7 @@ CONFIG = {
     'UPDATE_URL': 'https://github.com/Stark-Expo-Tech-Exchange/DSTerminal_releases_latest.git',
     'LOG_FILE': 'secure_audit.log',
     'ENCRYPT_KEY': Fernet.generate_key().decode(),
-    'CURRENT_VERSION': '2.0'
+    'CURRENT_VERSION': 'v2.1.0'
 }
 # Add this near CONFIG or __init__
 EDUCATION_TIPS = {
@@ -329,7 +329,7 @@ class SecurityTerminal:
             history=FileHistory('.dst_history'),
             auto_suggest=AutoSuggestFromHistory(),
             completer=WordCompleter([
-                'scan -t -w system -all', 'clear', 'clear terminal', 
+                'scan -t -w system -all', 'clear', 'clear terminal', 'financial transaction', 'transfer', 
                 'legitify', 'nikto', 'nikto --url [TARGET URL HERE] -p (port number here) -o [output file e.g report.txt]', 'net -n mon', 'harden -t sys', 'vt-scan',
                 'registry -n mon', 'cls', 
                 'memdump', 'update', 'help', 'exit', 'clearlogs',
@@ -364,7 +364,7 @@ class SecurityTerminal:
         "    ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝",
         "",
         "╠════════════════════════════════════════════════════════════════============══════╣",
-        f"║    Defensive Security Terminal v2.0.0 | {platform.system()} {platform.release()}   ║",
+        f"║    Defensive Security Terminal v2.1.0 | {platform.system()} {platform.release()}   ║",
         "║    Developed by: Spark Wilson Spink | © 2024| Powered by Stark Expo Tech Exchange║",
         "║    Type 'help' for available commands                                            ║",
         f"║ (🔍, ⚡, 🛡️) 🌐 ⚡ CLI Mode: {'ADMIN' if self.is_admin() else 'USER'}               ",
@@ -401,44 +401,6 @@ class SecurityTerminal:
         if not self.is_admin():
             print("\n[!] Warning: Running without administrator privileges. Some features may be limited.")
  
-    # ==================== CORE SECURITY COMMANDS ====================
-
-    # def scan_system(self):
-    #     self.scan_complete.clear()
-    #     self.scan_progress = 0
-        
-    #     spinner_thread = Thread(target=self._animate_scan)
-    #     spinner_thread.daemon = True
-    #     spinner_thread.start()
-
-    #     try:
-    #         for i in range(1, 101):
-    #             time.sleep(0.03)
-    #             self.scan_progress = i
-            
-    #         suspicious_processes = ["keylogger", "logkeys", "pykeylogger", "ahk"]
-    #         found_threats = False
-            
-    #         for proc in psutil.process_iter(['name', 'pid', 'exe']):
-    #             try:
-    #                 if any(susp_keyword in proc.info['name'].lower() for susp_keyword in suspicious_processes):
-    #                     print(f"\n[!] Suspicious Process: {proc.info['name']} (PID: {proc.pid})")
-    #                     found_threats = True
-                    
-    #                 if platform.system() == "Windows" and "temp" in proc.info.get('exe', '').lower():
-    #                     print(f"\n[!] Suspicious Temp Execution: {proc.info['name']}")
-    #                     found_threats = True
-    #             except:
-    #                 continue
-
-    #         if not found_threats:
-    #             print("\n[+] No obvious threats detected")
-
-                # finally:
-                #     self.scan_complete.set()
-                #     spinner_thread.join()
-                #     print("[+] System scan completed at 100%")
- 
 
     def show_tip(self, command):
         """Display educational tip for the executed command."""
@@ -449,7 +411,7 @@ class SecurityTerminal:
                 Align.center(
                     Panel.fit(
                         tip,
-                        title="[bold cyan]EDUCATIONAL TIP[/bold cyan]",
+                        title="[bold cyan]RECOMMENDED EDUCATIONAL TIP[/bold cyan]",
                         border_style="blue",
                         width=60,
                     ),
@@ -694,293 +656,117 @@ class SecurityTerminal:
         for cve, desc in vulns.items():
             print(f"{cve}: {desc} - {'[!] VULNERABLE' if random.random() > 0.7 else '[+] Secure'}")
 
-    # def network_monitor(self):
-    #     console = Console()
-    #     spinner_frames = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"]
     
-    #     banner = Text()
-    #     banner.append("\n[bold bright_green]🛰️ Initiating Network Recon Protocol...[/bold bright_green]\n", style="bold")
-    #     banner.append("[dim]Decrypting connection headers[/dim]\n")
-    #     console.print(banner)
-    
-    #     time.sleep(1)
-
-    #     connections = [conn for conn in psutil.net_connections() if conn.status == "ESTABLISHED" and conn.raddr]
-    
-    #     with Live(console=console, refresh_per_second=10) as live:
-    #         for i, conn in enumerate(connections):
-    #             spinner = spinner_frames[i % len(spinner_frames)]
-    #             ip_src = f"{conn.laddr.ip}:{conn.laddr.port}"
-    #             ip_dst = f"{conn.raddr.ip}:{conn.raddr.port}"
-    #             conn_text = Text(f"{spinner} ", style="bold cyan")
-    #             conn_text.append(f"{ip_src}", style="green")
-    #             conn_text.append("  ➞  ", style="white")
-    #             conn_text.append(f"{ip_dst}", style="magenta")
-    #             conn_text.append(f"  (PID: {conn.pid})", style="dim")
-            
-    #             panel = Panel(conn_text, border_style="bright_white", title="[bold green]Intercepted Session", width=80)
-    #             live.update(panel)
-    #             time.sleep(0.25)
-    
-    #     console.print("\n[bold bright_green]✓ Network scan completed.[/bold bright_green]")
-
-    # BELOW MACSPOOF CODE WORKING
-    # def spoof_mac(self, interface=None):
-    #     """Enhanced MAC spoofing with detailed debugging"""
-    #     print("\n[DEBUG] Starting macspoof command")  # Debug line 1
-    
-    # # 1. Admin check
-    #     if not self.is_admin():
-    #         print("[!] Requires admin privileges")
-    #         print("[DEBUG] Failed admin check")
-    #         return
-    
-    #     print("[DEBUG] Passed admin check")  # Debug line 2
-
-    # # 2. Interface detection
-    #     def get_active_interface():
-    #         print("[DEBUG] Starting interface detection")  # Debug line 3
-    #         try:
-    #             if platform.system() in ['Linux', 'Darwin']:
-    #                 print("[DEBUG] Trying Linux/Mac detection")
-    #                 route = subprocess.check_output("ip route show default", 
-    #                                             shell=True, 
-    #                                             stderr=subprocess.PIPE).decode()
-    #                 print(f"[DEBUG] Route output: {route.strip()}")  # Debug line 4
-    #                 if len(route.split()) >= 5:
-    #                     return route.split()[4]
-    #                 return None
-                
-    #             elif platform.system() == 'Windows':
-    #                 print("[DEBUG] Trying Windows detection")
-    #                 output = subprocess.check_output("getmac /v /fo csv", 
-    #                                             shell=True, 
-    #                                             stderr=subprocess.PIPE).decode()
-    #                 print(f"[DEBUG] Getmac output: {output.strip()}")  # Debug line 5
-    #                 lines = [l for l in output.split('\n') if l.strip()]
-    #                 if len(lines) > 1:
-    #                     return lines[1].split(',')[0].strip('"')
-    #                 return None
-                
-    #         except subprocess.CalledProcessError as e:
-    #             print(f"[DEBUG] Command failed: {e.stderr.decode().strip()}")
-    #             return None
-    #         except Exception as e:
-    #             print(f"[DEBUG] Detection error: {str(e)}")
-    #             return None
-
-    # # 3. Get interface
-    #     if not interface:
-    #         print("[DEBUG] Attempting auto-detection")  # Debug line 6
-    #         interface = get_active_interface()
-    #         if not interface:
-    #             print("[!] Could not detect active interface")
-    #             print("[DEBUG] Auto-detection failed")
-    #             return
-    
-    #     print(f"[DEBUG] Using interface: {interface}")  # Debug line 7
-
-    # # 4. MAC generation
-    #     new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
-    #         random.randint(0x00, 0x7f),
-    #         random.randint(0x00, 0xff),
-    #         random.randint(0x00, 0xff),
-    #         random.randint(0x00, 0xff),
-    #         random.randint(0x00, 0xff)
-    #     )
-    #     print(f"[DEBUG] Generated MAC: {new_mac}")  # Debug line 8
-
-    # # 5. Execution
-    #     try:
-    #         print(f"\n[+] Spoofing {interface} to {new_mac}")
-        
-    #         commands = []
-    #         if platform.system() in ['Linux', 'Darwin']:
-    #             commands = [
-    #                 f"ifconfig {interface} down",
-    #                 f"ifconfig {interface} hw ether {new_mac}",
-    #                 f"ifconfig {interface} up",
-    #                 f"dhclient -r {interface}",
-    #                 f"dhclient {interface}"
-    #             ]
-    #         elif platform.system() == 'Windows':
-    #             interface_key = interface.split('_')[-1]
-    #             commands = [
-    #                 f"netsh interface set interface \"{interface}\" admin=disable",
-    #                 f"reg add HKLM\SYSTEM\CurrentControlSet\Control\Class"
-    #                 f"\\{{4D36E972-E325-11CE-BFC1-08002BE10318}}"
-    #                 f"\\{interface_key} /v NetworkAddress /d {new_mac} /f",
-    #                 f"netsh interface set interface \"{interface}\" admin=enable"
-    #             ]
-        
-    #         print("[DEBUG] Commands to execute:")  # Debug line 9
-    #         for i, cmd in enumerate(commands, 1):
-    #             print(f"[DEBUG] {i}. {cmd}")
-            
-    #             result = subprocess.run(cmd, 
-    #                                 shell=True, 
-    #                                 capture_output=True, 
-    #                                 text=True)
-    #             if result.returncode != 0:
-    #                 print(f"[DEBUG] Command failed: {result.stderr.strip()}")
-            
-    #             time.sleep(0.5)
-        
-    #         print("[+] MAC address successfully changed")
-        
-    #     except Exception as e:
-    #         print(f"[!] MAC spoofing failed: {str(e)}")
-    
-    # # 6. Verification
-    #     self._verify_mac_change(interface, new_mac)
-
-    # def _verify_mac_change(self, interface, expected_mac):
-    #     """Enhanced verification with debugging"""
-    #     print("[DEBUG] Starting verification")  # Debug line 10
-    #     try:
-    #         if platform.system() in ['Linux', 'Darwin']:
-    #             result = subprocess.run(f"ifconfig {interface}",
-    #                                 shell=True,
-    #                                 capture_output=True,
-    #                                 text=True)
-    #             print(f"[DEBUG] ifconfig output: {result.stdout[:200]}...")  # Debug line 11
-    #             if expected_mac.lower() in result.stdout.lower():
-    #                 print("[✓] MAC verification successful")
-    #             else:
-    #                 print("[!] MAC verification failed")
-                
-    #         elif platform.system() == 'Windows':
-    #             result = subprocess.run("getmac /v /fo csv",
-    #                                 shell=True,
-    #                                 capture_output=True,
-    #                                 text=True)
-    #             print(f"[DEBUG] getmac output: {result.stdout.strip()}")  # Debug line 12
-    #             if expected_mac.lower() in result.stdout.lower():
-    #                 print("[✓] MAC verification successful")
-    #             else:
-    #                 print("[!] MAC verification failed")
-    
-    #     except Exception as e:
-    #         print(f"[DEBUG] Verification error: {str(e)}")
-
-    # ======end of macspoof
-
-# import random
-# import time
-# import platform
-# import subprocess
-# from rich.console import Console
-# from rich.panel import Panel
-# from rich.live import Live
-# from rich.text import Text
-# from rich.progress import Progress
-
-# class MacSpoofer:
-#     def __init__(self):
-#         self.console = Console()
-        
     def spoof_mac(self, interface=None):
-        """Enhanced MAC spoofing with interactive visualization"""
+        """Enhanced MAC spoofing with progress indicators and persistent output"""
+        console = Console()
+
+    # Animation frames
+        FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+        def create_panel(content, title="", border_style="blue"):
+            return Panel(
+                content,
+                title=title,
+                border_style=border_style,
+                width=60,
+                padding=(1, 2)
+            )
+
+        def generate_display(debug_msgs, status_msgs, progress=None):
+            debug_panel = create_panel(
+                "\n".join(debug_msgs[-5:]),
+                title="[blue]DEBUG LOG[/blue]",
+                border_style="blue"
+            )
+        
+            status_panel = create_panel(
+                "\n".join(status_msgs[-5:]),
+                title="[green]STATUS[/green]",
+                border_style="green"
+            )
+        
+            progress_panel = create_panel(
+                progress if progress else "Initializing...",
+                title="[red]PROGRESS[/red]",
+                border_style="red"
+            )
+        
+            return Columns([debug_panel, status_panel, progress_panel])
+
         debug_messages = []
-        status_updates = []
-        
-        def add_debug(msg):
-            debug_messages.append(f"[dim][DEBUG][/dim] {msg}")
+        status_messages = []
+        current_frame = 0
+
+        try:
+        # Main display context
+            with Live(generate_display(debug_messages, status_messages), console=console) as live:
+            # 1. Admin Check
+                debug_messages.append("Checking admin privileges...")
+                live.update(generate_display(debug_messages, status_messages))
             
-        def add_status(msg, style=""):
-            status_updates.append(f"[{style}]{msg}[/{style}]")
-        
-        # Create panels for live display
-        def generate_display():
-            debug_panel = Panel(
-                "\n".join(debug_messages[-10:]),
-                title="[blue]Debug Console[/blue]",
-                border_style="blue",
-                height=20
-            )
+                if not self.is_admin():
+                    status_messages.append("[red]✖ Requires admin privileges[/red]")
+                    live.update(generate_display(debug_messages, status_messages))
+                    raise PermissionError("Admin rights required")
             
-            status_panel = Panel(
-                "\n".join(status_updates[-10:]),
-                title="[green]Status Updates[/green]",
-                border_style="green",
-                height=20
-            )
+                status_messages.append("[green]✔ Admin privileges confirmed[/green]")
+                live.update(generate_display(debug_messages, status_messages))
             
-            animation = self._generate_animation_frame()
+            # 2. Interface Detection
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    transient=True
+                ) as progress:
+                    task = progress.add_task("Detecting interface...", total=100)
+                    for i in range(100):
+                        progress.update(task, advance=1)
+                        time.sleep(0.02)
+                        if i % 10 == 0:
+                            live.update(generate_display(debug_messages, status_messages))
             
-            return Columns([debug_panel, status_panel, animation])
-        
-        # Start live display
-        with Live(generate_display(), refresh_per_second=4) as live:
-            # 1. Admin check
-            add_debug("Starting macspoof command")
-            if not self.is_admin():
-                add_status("✖ Requires admin privileges", "red")
-                add_debug("Failed admin check")
-                return
-            
-            add_status("✔ Passed admin privileges check", "green")
-            add_debug("Passed admin check")
-            
-            # 2. Interface detection
-            def get_active_interface():
-                add_debug("Starting interface detection")
-                try:
-                    if platform.system() in ['Linux', 'Darwin']:
-                        add_debug("Trying Linux/Mac detection")
-                        route = subprocess.check_output("ip route show default", 
-                                                    shell=True, 
-                                                    stderr=subprocess.PIPE).decode()
-                        add_debug(f"Route output: {route.strip()}")
-                        if len(route.split()) >= 5:
-                            return route.split()[4]
-                        return None
-                    
-                    elif platform.system() == 'Windows':
-                        add_debug("Trying Windows detection")
-                        output = subprocess.check_output("getmac /v /fo csv", 
-                                                    shell=True, 
-                                                    stderr=subprocess.PIPE).decode()
-                        add_debug(f"Getmac output: {output.strip()}")
-                        lines = [l for l in output.split('\n') if l.strip()]
-                        if len(lines) > 1:
-                            return lines[1].split(',')[0].strip('"')
-                        return None
-                    
-                except subprocess.CalledProcessError as e:
-                    add_debug(f"Command failed: {e.stderr.decode().strip()}")
-                    return None
-                except Exception as e:
-                    add_debug(f"Detection error: {str(e)}")
+                def get_active_interface():
+                    try:
+                        if platform.system() in ['Linux', 'Darwin']:
+                            route = subprocess.check_output("ip route show default", 
+                                                        shell=True, 
+                                                        stderr=subprocess.PIPE).decode()
+                            if len(route.split()) >= 5:
+                                return route.split()[4]
+                        elif platform.system() == 'Windows':
+                            output = subprocess.check_output("getmac /v /fo csv", 
+                                                        shell=True, 
+                                                        stderr=subprocess.PIPE).decode()
+                            lines = [l for l in output.split('\n') if l.strip()]
+                            if len(lines) > 1:
+                                return lines[1].split(',')[0].strip('"')
+                    except Exception as e:
+                        debug_messages.append(f"Error: {str(e)}")
                     return None
             
-            # 3. Get interface
-            if not interface:
-                add_debug("Attempting auto-detection")
-                interface = get_active_interface()
                 if not interface:
-                    add_status("✖ Could not detect active interface", "red")
-                    add_debug("Auto-detection failed")
-                    return
+                    interface = get_active_interface()
+                    if not interface:
+                        status_messages.append("[red]✖ Interface detection failed[/red]")
+                        live.update(generate_display(debug_messages, status_messages))
+                        raise ValueError("No interface detected")
             
-            add_status(f"✔ Using interface: [bold]{interface}[/bold]", "green")
-            add_debug(f"Using interface: {interface}")
+                status_messages.append(f"[green]✔ Interface: [bold]{interface}[/bold][/green]")
+                live.update(generate_display(debug_messages, status_messages))
             
-            # 4. MAC generation
-            new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
-                random.randint(0x00, 0x7f),
-                random.randint(0x00, 0xff),
-                random.randint(0x00, 0xff),
-                random.randint(0x00, 0xff),
-                random.randint(0x00, 0xff)
-            )
-            add_status(f"Generated new MAC: [bold]{new_mac}[/bold]", "yellow")
-            add_debug(f"Generated MAC: {new_mac}")
+            # 3. MAC Generation
+                new_mac = "02:%02x:%02x:%02x:%02x:%02x" % (
+                    random.randint(0x00, 0x7f),
+                    random.randint(0x00, 0xff),
+                    random.randint(0x00, 0xff),
+                    random.randint(0x00, 0xff),
+                    random.randint(0x00, 0xff)
+                )
+                status_messages.append(f"[yellow]New MAC: [bold]{new_mac}[/bold][/yellow]")
+                live.update(generate_display(debug_messages, status_messages))
             
-            # 5. Execution with progress
-            try:
-                add_status(f"\n[!] Spoofing [bold]{interface}[/bold] to [bold]{new_mac}[/bold]", "bold yellow")
-                
+            # 4. Execution with live progress
                 commands = []
                 if platform.system() in ['Linux', 'Darwin']:
                     commands = [
@@ -999,304 +785,492 @@ class SecurityTerminal:
                         f"\\{interface_key} /v NetworkAddress /d {new_mac} /f",
                         f"netsh interface set interface \"{interface}\" admin=enable"
                     ]
-                
-                add_debug("Commands to execute:")
-                for i, cmd in enumerate(commands, 1):
-                    add_debug(f"{i}. {cmd}")
-                    
-                    # Show command execution progress
-                    with Progress(transient=True) as progress:
-                        task = progress.add_task(f"[cyan]Executing: {cmd[:30]}...", total=100)
-                        for _ in range(100):
-                            time.sleep(0.02)
-                            progress.update(task, advance=1)
-                            live.update(generate_display())
-                    
-                    result = subprocess.run(cmd, 
-                                        shell=True, 
-                                        capture_output=True, 
-                                        text=True)
-                    if result.returncode != 0:
-                        add_debug(f"Command failed: {result.stderr.strip()}")
-                    
-                    time.sleep(0.5)
-                    live.update(generate_display())
-                
-                add_status("✔ MAC address successfully changed", "bold green")
-                
-            except Exception as e:
-                add_status(f"✖ MAC spoofing failed: {str(e)}", "red")
             
-            # 6. Verification
-            self._verify_mac_change(interface, new_mac, add_debug, add_status)
-            live.update(generate_display())
-    
-    def _verify_mac_change(self, interface, expected_mac, debug_cb, status_cb):
-        """Enhanced verification with callbacks"""
-        debug_cb("Starting verification")
-        try:
-            if platform.system() in ['Linux', 'Darwin']:
-                result = subprocess.run(f"ifconfig {interface}",
-                                    shell=True,
-                                    capture_output=True,
-                                    text=True)
-                debug_cb(f"ifconfig output: {result.stdout[:200]}...")
-                if expected_mac.lower() in result.stdout.lower():
-                    status_cb("✓ MAC verification successful", "bold green")
-                else:
-                    status_cb("✖ MAC verification failed", "red")
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                    transient=True
+                ) as progress:
+                    task = progress.add_task("Changing MAC...", total=len(commands)*100)
                 
-            elif platform.system() == 'Windows':
-                result = subprocess.run("getmac /v /fo csv",
-                                    shell=True,
-                                    capture_output=True,
-                                    text=True)
-                debug_cb(f"getmac output: {result.stdout.strip()}")
-                if expected_mac.lower() in result.stdout.lower():
-                    status_cb("✓ MAC verification successful", "bold green")
+                    for i, cmd in enumerate(commands):
+                        debug_messages.append(f"Executing: {cmd}")
+                        live.update(generate_display(debug_messages, status_messages))
+                    
+                        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+                    
+                        for step in range(100):
+                            progress.update(task, advance=1, 
+                                        description=f"{cmd[:20]}...")
+                            time.sleep(0.01)
+                            if step % 10 == 0:
+                                live.update(generate_display(debug_messages, status_messages))
+                    
+                        if result.returncode != 0:
+                            debug_messages.append(f"Error: {result.stderr.strip()}")
+                            live.update(generate_display(debug_messages, status_messages))
+            
+            # 5. Verification
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    transient=True
+                ) as progress:
+                    task = progress.add_task("Verifying...", total=100)
+                    for i in range(100):
+                        progress.update(task, advance=1)
+                        time.sleep(0.02)
+                        if i % 10 == 0:
+                            live.update(generate_display(debug_messages, status_messages))
+            
+                verification_passed = False
+                if platform.system() in ['Linux', 'Darwin']:
+                    result = subprocess.run(f"ifconfig {interface}",
+                                        shell=True,
+                                        capture_output=True,
+                                        text=True)
+                    verification_passed = new_mac.lower() in result.stdout.lower()
+                elif platform.system() == 'Windows':
+                    result = subprocess.run("getmac /v /fo csv",
+                                        shell=True,
+                                        capture_output=True,
+                                        text=True)
+                    verification_passed = new_mac.lower() in result.stdout.lower()
+            
+                if verification_passed:
+                    status_messages.append("[bold green]✓ MAC changed successfully![/bold green]")
                 else:
-                    status_cb("✖ MAC verification failed", "red")
-        
+                    status_messages.append("[yellow]⚠ MAC changed but verification failed[/yellow]")
+                    debug_messages.append("Note: Some systems require restart for verification")
+            
+            # Final output
+                live.update(generate_display(debug_messages, status_messages))
+                console.print("\n[bold]Press Enter to continue...[/bold]", end="")
+                
+                input()
+            
         except Exception as e:
-            debug_cb(f"Verification error: {str(e)}")
-    
-    def _generate_animation_frame(self):
-        """Generate animated hacking visualization"""
-        frames = [
-            Text("""
-            █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █░░▒▒██▒██▒▒██▒██▒▒░░█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █░░▒▒▒▄▄▄▄▒▒▄▄▄▄▒▒▒░░█
-            █░░▒▒▒▒▀▀▀▒▒▀▀▀▒▒▒▒░░█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
-            """),
-            Text("""
-            █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █░░▒▒▒▒██▒██▒▒██▒██▒░░█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █░░▒▒▄▄▄▄▒▒▒▒▄▄▄▄▒▒▒░░█
-            █░░▒▒▀▀▀▒▒▒▒▒▀▀▀▒▒▒░░█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
-            """),
-            Text("""
-            █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █░░▒██▒██▒▒▒▒██▒██▒▒░░█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █░░▒▄▄▄▄▒▒▒▒▒▒▄▄▄▄▒░░█
-            █░░▒▀▀▀▒▒▒▒▒▒▒▒▀▀▀▒▒░░█
-            █░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░█
-            █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
-            """)
-        ]
-        return Panel(
-            frames[int(time.time() * 4) % len(frames)],
-            title="[red]MAC Spoofer[/red]",
-            border_style="red"
-        )
-    
-    def is_admin(self):
-        """Check for admin privileges"""
-        try:
-            if platform.system() == 'Windows':
-                import ctypes
-                return ctypes.windll.shell32.IsUserAnAdmin() != 0
-            else:
-                return os.getuid() == 0
-        except:
-            return False
+            console.print(f"[red]Error: {str(e)}[/red]")
+            debug_messages.append(f"Failed: {str(e)}")
+            console.print(generate_display(debug_messages, status_messages))
+            console.print("\n[bold]Press Enter to continue...[/bold]", end="")
+            input()
 
-# end of animated
+        # end here macspoof
     def sql_injection_scan(self, url=None):
+        """Interactive SQL injection scanner with cinematic animations"""
         console = Console()
     
+    # Animation frames
+        SQL_FRAMES = [
+            "SELECT * FROM users",
+            "UNION SELECT 1,2,3",
+            "1' OR '1'='1",
+            "WAITFOR DELAY '0:0:5'",
+            "CONVERT(int,@@version)"
+        ]
+
     # Get URL if not provided
         if not url:
-            url = input("Enter target URL (include http:// or https://): ").strip()
+            url = console.input("\n[bold cyan]Enter target URL (with http://): [/]").strip()
     
         if not url.startswith(("http://", "https://")):
-            console.print("[red][!] Invalid URL format (must include http:// or https://)[/red]")
-            return
-
-    # Check if sqlmap is installed
-        if not which("sqlmap"):
             console.print(Panel(
-                "[red]sqlmap not found![/red]\n"
-                "Install it with:\n"
-                "[green]git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git[/green]\n"
-                "or visit [blue]https://sqlmap.org[/blue]",
-                title="Required Dependency Missing"
+                "[red]Invalid URL format! Must include http:// or https://[/red]",
+                title="Input Error",
+                border_style="red"
             ))
             return
 
-        console.print(f"\n[green][+] Starting SQLi scan on {url}[/green]")
-        console.print("[yellow][*] This may take several minutes...[/yellow]\n")
+    # Check sqlmap installation
+        if not which("sqlmap"):
+            console.print(Panel(
+                "[red]sqlmap not found![/red]\n\n"
+                "Install with:\n"
+                "[green]git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git[/green]\n\n"
+                "Or visit: [blue]https://sqlmap.org[/blue]",
+                title="Dependency Missing",
+                border_style="red"
+            ))
+            return
+
+    # Prepare display panels
+        def create_panel(content, title="", border_style="blue"):
+            return Panel(
+                content,
+                title=title,
+                border_style=border_style,
+                width=50,
+                padding=(1, 1)
+            )
+
+    # Main display generator
+        def generate_display(scan_log, status_msg, animation_frame):
+            log_panel = create_panel(
+                "\n".join(scan_log[-5:]),
+                title="[blue]SCAN LOG[/blue]",
+                border_style="blue"
+            )
+        
+            status_panel = create_panel(
+                status_msg,
+                title="[green]STATUS[/green]",
+                border_style="green"
+            )
+        
+            anim_panel = create_panel(
+                animation_frame,
+                title="[red]SQL INJECTION[/red]",
+                border_style="red"
+            )
+        
+            return Columns([log_panel, status_panel, anim_panel])
+
+        scan_log = []
+        status_msg = "Initializing scan..."
+        current_frame = random.choice(SQL_FRAMES)
 
     # Prepare sqlmap command
+        report_dir = "./sqlmap_reports"
+        os.makedirs(report_dir, exist_ok=True)
+    
         cmd = [
             "sqlmap",
             "-u", url,
-            "--batch",  # Non-interactive
-            "--risk=3",  # Higher risk level
-            "--level=5",  # Thorough testing
-            "--crawl=1",  # Limited crawling
+            "--batch",
+            "--risk=3",
+            "--level=3",
+            "--crawl=1",
             "--random-agent",
-            "--output-dir=./sqlmap_results"
+            "--output-dir", report_dir
         ]
 
-    # Create progress display
-        with Progress(
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            console=console,
-            transient=True
-        ) as progress:
-            task = progress.add_task("[cyan]Scanning...", total=100)
-        
-        # Run sqlmap in background
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True
-            )
-        
-        # Simulate progress while process runs
-            while process.poll() is None:
-                time.sleep(0.1)
-                progress.update(task, advance=0.5)
-                if progress.tasks[0].percentage >= 100:
-                    progress.update(task, completed=99)
-
-            progress.update(task, completed=100)
-
-    # Parse results
-        result_file = f"./sqlmap_results/{url.replace('://', '_').replace('/', '_')}/log"
-        vulnerabilities = []
-    
-        if os.path.exists(result_file):
-            with open(result_file, 'r') as f:
-                for line in f:
-                    if "Parameter:" in line:
-                        vulnerabilities.append(line.strip())
-                    elif "Type:" in line and "Title:" not in line:
-                        vulnerabilities.append(line.strip())
-
-    # Display results
-        if vulnerabilities:
-            console.print("\n[red][!] VULNERABILITIES FOUND:[/red]")
-            for vuln in vulnerabilities:
-                console.print(f" - {vuln}")
-        
+        try:
+            with Live(generate_display(scan_log, status_msg, current_frame), 
+                    console=console, 
+                    refresh_per_second=10,
+                    transient=False) as live:
+            
+            # Start scan with progress animation
+                scan_log.append(f"Starting scan on: {url}")
+                status_msg = "[yellow]Scanning target...[/yellow]"
+            
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                    transient=True
+                ) as progress:
+                    task = progress.add_task("[cyan]Testing parameters", total=100)
+                
+                # Run sqlmap in background
+                    process = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        universal_newlines=True
+                    )
+                
+                # Animate while scanning
+                    frame_counter = 0
+                    while process.poll() is None:
+                        frame_counter += 1
+                        if frame_counter % 5 == 0:
+                            current_frame = random.choice(SQL_FRAMES)
+                    
+                    # Update progress
+                        progress.update(task, advance=0.5)
+                        if progress.tasks[0].percentage >= 100:
+                            progress.update(task, completed=99)
+                    
+                    # Read output
+                        line = process.stdout.readline()
+                        if line:
+                            if "testing" in line.lower():
+                                status_msg = f"[yellow]{line.strip()}[/yellow]"
+                            scan_log.append(line.strip())
+                    
+                        live.update(generate_display(scan_log, status_msg, current_frame))
+                        time.sleep(0.1)
+                
+                    progress.update(task, completed=100)
+            
+            # Process results
+                status_msg = "[green]Scan completed![/green]"
+                live.update(generate_display(scan_log, status_msg, current_frame))
+            
+            # Parse vulnerabilities
+                vulns = []
+                report_file = os.path.join(report_dir, url.replace("://", "_").replace("/", "_"), "log")
+                if os.path.exists(report_file):
+                    with open(report_file, "r") as f:
+                        for line in f:
+                            if any(x in line for x in ["injectable", "vulnerable", "payload:"]):
+                                vulns.append(line.strip())
+            
+            # Show results
+                if vulns:
+                    status_msg = "[red]VULNERABILITIES FOUND![/red]"
+                    scan_log.extend([""] + vulns[-3:] + [f"\nFull report: {report_file}"])
+                else:
+                    status_msg = "[green]No vulnerabilities found[/green]"
+            
+                live.update(generate_display(scan_log, status_msg, current_frame))
+                console.print("\n[bold]Press Enter to continue...[/]", end="")
+                input()
+            
+        except Exception as e:
             console.print(Panel(
-                f"Found [red]{len(vulnerabilities)}[/red] potential injection points\n"
-                "Full report saved in [blue]./sqlmap_results/[/blue]",
-                title="Scan Complete",
-                style="red"
+                f"[red]Error: {str(e)}[/red]",
+                title="Scan Failed",
+                border_style="red"
             ))
- 
-        else:
-            console.print(Panel(
-                "No SQL injection vulnerabilities detected",
-                title="Scan Complete",
-                style="green"
-            ))
+            console.print("\n[bold]Press Enter to continue...[/]", end="")
+            input()
  
     # ==================== UTILITY METHODS ====================
+ 
+
     def clear_logs(self):
-        """Securely clear system logs"""
-        if self.is_admin():
-            try:
-                if platform.system() == "Windows":
-                    os.system("wevtutil cl System")
-                    os.system("wevtutil cl Application")
-                    os.system("wevtutil cl Security")
-                    print("[+] Windows event logs cleared")
-                else:
-                    os.system("sudo rm -rf /var/log/*")
-                    print("[+] System logs cleared")
-            except Exception as e:
-                print(f"[!] Error clearing logs: {e}")
-        else:
-            print("[!] Requires admin privileges")
+        """Securely clear system logs with admin verification and visual feedback"""
+        console = Console()
 
-    def port_scan(self, target):
-        """Scan target IP for open ports"""
-        print(f"\n[+] Scanning {target}...")
-        common_ports = [21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445, 993, 995, 1723, 3306, 3389, 5900, 8080]
-        
-        def scan_port(port):
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(1)
-                result = sock.connect_ex((target, port))
-                if result == 0:
-                    print(f"  [→] Port {port} is open")
-                sock.close()
-            except:
-                pass
+        def create_panel(content, title="", border_style="blue"):
+            return Panel(
+                content,
+                title=title,
+                border_style=border_style,
+                width=60,
+                padding=(1, 1)
+            )
 
-        threads = []
-        for port in common_ports:
-            t = Thread(target=scan_port, args=(port,))
-            threads.append(t)
-            t.start()
-        
-        for t in threads:
-            t.join()
-        print("[+] Port scan completed")
-
-    def hash_file(self, file_path):
-        """Generate cryptographic hashes for a file"""
-        if not os.path.exists(file_path):
-            print("[!] File not found")
+    # Verify admin privileges first
+        if not self.is_admin():
+            console.print(
+                create_panel(
+                    "[red]✖ Requires administrator privileges[/red]",
+                    title="Access Denied",
+                    border_style="red"
+                )
+            )
             return
 
         try:
-            with open(file_path, 'rb') as f:
-                data = f.read()
-                md5 = hashlib.md5(data).hexdigest()
-                sha1 = hashlib.sha1(data).hexdigest()
-                sha256 = hashlib.sha256(data).hexdigest()
+            with Progress(transient=True) as progress:
+                task = progress.add_task("[cyan]Clearing system logs...", total=100)
+
+            # Animated clearing process
+                for i in range(5):
+                    progress.update(task, advance=20, description=f"[cyan]Clearing {['event','application','security','setup','system'][i]} logs...")
+                    time.sleep(0.5)
+
+            # Actual log clearing commands
+                if platform.system() == "Windows":
+                    logs_cleared = []
+                    for log_type in ["Application", "System", "Security"]:
+                        result = os.system(f"wevtutil cl {log_type}")
+                        if result == 0:
+                            logs_cleared.append(log_type)
+                    progress.update(task, completed=100)
                 
-                print(f"\n[+] Hashes for {file_path}:")
-                print(f"  MD5:    {md5}")
-                print(f"  SHA1:   {sha1}")
-                print(f"  SHA256: {sha256}")
+                    console.print(
+                        create_panel(
+                            f"[green]✔ Cleared Windows logs: {', '.join(logs_cleared)}[/green]",
+                            title="Success",
+                            border_style="green"
+                        )
+                    )
+
+                else:  # Linux/Mac
+                    try:
+                        os.system("sudo rm -rf /var/log/*")
+                        os.system("sudo journalctl --vacuum-time=1s")
+                        progress.update(task, completed=100)
+                        console.print(
+                            create_panel(
+                                "[green]✔ Cleared system logs successfully[/green]",
+                                title="Success",
+                                border_style="green"
+                            )
+                        )
+                    except Exception as e:
+                        progress.update(task, visible=False)
+                        console.print(
+                            create_panel(
+                                f"[red]✖ Error clearing logs: {str(e)}[/red]",
+                                title="Error",
+                                border_style="red"
+                            )
+                        )
+
         except Exception as e:
-            print(f"[!] Error hashing file: {e}")
+            console.print(
+                create_panel(
+                    f"[red]✖ Critical error: {str(e)}[/red]",
+                    title="Operation Failed",
+                    border_style="red"
+                )
+            )
 
-    def system_info(self):
-        """Display detailed system information"""
-        print("\n[+] System Information:")
-        print(f"  OS: {platform.system()} {platform.release()}")
-        print(f"  Architecture: {platform.machine()}")
-        print(f"  Processor: {platform.processor()}")
-        print(f"  Hostname: {socket.gethostname()}")
-        print(f"  IP Address: {socket.gethostbyname(socket.gethostname())}")
-        print(f"  CPU Cores: {psutil.cpu_count(logical=False)} (Logical: {psutil.cpu_count()})")
-        print(f"  Memory: {psutil.virtual_memory().total / (1024**3):.2f} GB")
-        print(f"  Disk Usage: {psutil.disk_usage('/').percent}%")
-        print(f"  Boot Time: {datetime.fromtimestamp(psutil.boot_time()).strftime('%Y-%m-%d %H:%M:%S')}")
 
-    def kill_process(self, pid):
-        """Terminate a process by PID"""
+# FINANCIAL SECTION
+    def financial_simulator(self):
+        """Interactive financial attack simulator with real-time money transfer animations"""
+        console = Console()
+    
+    # Financial database
+        BANKS = {
+            "SWIFT": ["JPMorgan", "HSBC", "BankofAmerica", "StandardChartered"],
+            "Crypto": ["Binance", "Coinbase", "Kraken"],
+            "Payment": ["Visa", "Mastercard", "PayPal"]
+        }
+
+        def create_panel(content, title="", border_style="blue", width=40):
+            return Panel(
+                content,
+                title=title,
+                border_style=border_style,
+                width=width,
+                padding=(1, 1)
+            )
+
+    # Animation frames for money transfer
+        MONEY_FRAMES = [
+            "▁▂▃▄▅▆▇█",
+            "▁▂▃▄▅▆▇▆▅▄▃▂▁",
+            "←══════✪══════→",
+            "▰▰▰▰▰▰▰▰▰▰",
+            "[green]$$$[/][yellow]$$[/][red]$$[/]"
+        ]
+
+    # Get user input
+        console.print(Panel.fit("[bold red]FINANCIAL SIMULATOR[/]", border_style="red"))
+    
+    # Bank selection
+        bank_type = console.input("\n[bold cyan]Enter bank type (SWIFT/Crypto/Payment): [/]").strip()
+        if bank_type not in BANKS:
+            console.print(Panel("[red]Invalid bank type![/]", border_style="red"))
+            return
+    
+        bank = random.choice(BANKS[bank_type])
+        amount = console.input("[bold cyan]Enter amount to transfer: [/]").strip()
+        recipient = console.input("[bold cyan]Enter recipient account: [/]").strip()
+
+    # Transaction simulation
         try:
-            process = psutil.Process(pid)
-            print(f"[+] Killing process: {process.name()} (PID: {pid})")
-            process.kill()
-            print("[+] Process terminated")
-        except psutil.NoSuchProcess:
-            print("[!] No such process")
-        except psutil.AccessDenied:
-            print("[!] Access denied (try as admin)")
+            layout = Layout()
+            layout.split(
+                Layout(name="header", size=3),
+                Layout(name="main", ratio=1),
+                Layout(name="footer", size=7)
+            )
+        
+        # Create panels
+            transaction_panel = create_panel(
+                f"[bold]From:[/] DSTerminal_Acct\n"
+                f"[bold]To:[/] {recipient}\n"
+                f"[bold]Bank:[/] {bank}\n"
+                f"[bold]Amount:[/] [green]{amount}[/]",
+                title="[blue]TRANSACTION[/]",
+                border_style="blue",
+                width=45
+            )
+        
+            network_panel = create_panel(
+                f"[bold]Network:[/] {bank_type}\n"
+                f"[bold]Status:[/] [yellow]Pending[/]\n"
+                f"[bold]Fee:[/] ${random.uniform(0.1, 5.0):.2f}",
+                title="[yellow]NETWORK[/]",
+                border_style="yellow",
+                width=45
+            )
 
+        # Animation function
+            def generate_frame(frame_num):
+                animation = MONEY_FRAMES[frame_num % len(MONEY_FRAMES)]
+                return create_panel(
+                    f"\n\n[bold]{animation}[/]\n\n"
+                    f"[dim]Encrypting transaction...[/]",
+                    title="[red]TRANSFER IN PROGRESS[/]",
+                    border_style="red",
+                    width=50
+                )
+
+        # Live progress display
+            with Live(layout, refresh_per_second=10, screen=True) as live:
+            # Header
+                layout["header"].update(
+                    Panel.fit(
+                        f"[bold]Simulating {bank_type} Transfer[/] → [green]{amount}[/]",
+                        border_style="green"
+                    )
+                )
+            
+            # Main content
+                layout["main"].update(Columns([transaction_panel, network_panel]))
+            
+            # Animated transfer
+                for i in range(1, 101):
+                    layout["footer"].update(generate_frame(i))
+                
+                # Update status at different stages
+                    if i == 30:
+                        network_panel.border_style = "green"
+                        network_panel.title = "[green]NETWORK[/]"
+                        network_panel.renderable = network_panel.renderable.replace(
+                            "[yellow]Pending[/]", 
+                            "[green]Processing[/]"
+                        )
+                
+                    if i == 70:
+                        network_panel.renderable = network_panel.renderable.replace(
+                            "[green]Processing[/]", 
+                            "[blue]Verifying[/]"
+                        )
+                
+                    time.sleep(0.08)
+                    live.refresh()
+
+            # Completion
+                layout["footer"].update(
+                    create_panel(
+                        f"[bold green]✓ TRANSFER COMPLETE[/]\n\n"
+                        f"[dim]Confirmation: DST-{random.randint(10000,99999)}[/]",
+                        title="[green]SUCCESS[/]",
+                        border_style="green",
+                        width=50
+                    )
+                )
+                network_panel.renderable = network_panel.renderable.replace(
+                    "[blue]Verifying[/]", 
+                    "[green]Completed[/]"
+                )
+                live.refresh()
+                time.sleep(2)
+
+        # Generate report
+            console.print(Panel(
+                f"[bold]Transaction Report[/]\n\n"
+                f"• Amount: [green]{amount}[/]\n"
+                f"• Bank: {bank}\n"
+                f"• Recipient: {recipient}\n"
+                f"• Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"• Network: {bank_type}\n"
+                f"• Status: [green]Verified[/]",
+                title="Receipt",
+                border_style="bright_white"
+            ))
+
+        except KeyboardInterrupt:
+            console.print(Panel("[yellow]Transfer cancelled by user[/]", border_style="yellow"))
+    
+        console.print("\n[bold]Press Enter to return to menu...[/]", end="")
+        input()
+
+# FINANCIAL SECTION ENDS HERE
     def check_integrity(self):
         """Check system file integrity"""
         print("\n[+] Checking critical system files...")
@@ -2724,6 +2698,12 @@ class SecurityTerminal:
         # ===================================
 
     #  for clear command to clean terminal
+    # Add to your command handler:
+        elif cmd == "financial transaction":
+            self.financial_simulator()
+            # Add to your command handler:
+        elif cmd == "extract -money":
+            self.financial_simulator()
         elif cmd == "clear terminal":
             self.clear_terminal()
             self.show_tip(cmd)
@@ -2741,7 +2721,7 @@ class SecurityTerminal:
             self.check_exploits()
             self.show_tip(cmd)
         elif cmd.startswith("macspoof"): 
-            self.spoof_mac(cmd.split()[1] if len(cmd.split()) > 1 else "eth0")
+            self.spoof_mac(cmd.split()[1] if len(cmd.split()) > 1 else "enp3s0")
             self.show_tip(cmd)
 
     #  sqlmap and log clearing
@@ -2860,11 +2840,13 @@ class SecurityTerminal:
     torify                                              - Route traffic through Tor
     dnssec [DOMAIN]                                     - Validate DNSSEC
     
-    === Forensics ============
+    === Forensics Analysis (+Financial) ============
     memdump                                             - Capture RAM for analysis
     hashfile [PATH]                                     - Generate file hashes
     stegcheck [IMG]                                     - Detect hidden image data
     ransomwatch                                         - Find ransomware artifacts
+    financail transaction                               -Perform financial transaction
+    transfer                                            - transfer money from one acc to another
     
     === System Management ====
     sysinfo                                             - Detailed system report
