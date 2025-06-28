@@ -10,7 +10,7 @@
         ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
         
     ╠════════════════════════════════════════════════════════════════============══════╣
-    ║    Defensive Security Terminal v2.1.0 | Linux 6.10.11-amd64   ║
+    ║    Defensive Security Terminal v2.1.0 | Linux 6.12.12-amd64   ║
     ║    Developed by: Spark Wilson Spink | © 2024| Powered by Stark Expo Tech Exchange║
     ║    Type 'help' for available commands                                            ║
     ║ (🔍, ⚡, 🛡️) 🌐 ⚡ CLI Mode: USER               
